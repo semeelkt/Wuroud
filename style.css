@@ -1,0 +1,160 @@
+/* ========== GLOBAL RESET ========== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  /* ========== BODY ========== */
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #f9f9f9;
+    color: #333;
+    line-height: 1.5;
+    padding: 0 1rem;
+  }
+  
+  /* ========== HEADER ========== */
+  header {
+    text-align: center;
+    padding: 2rem 0 1rem;
+  }
+  header h1 {
+    font-size: 2.2rem;
+    color: #444;
+    letter-spacing: 0.5px;
+  }
+  header p {
+    font-size: 1rem;
+    color: #666;
+    margin-top: 0.3rem;
+  }
+  
+  /* ========== FILTER SECTION ========== */
+  .filters {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 1.2rem 0 2rem;
+    flex-wrap: wrap;
+  }
+  .filters select,
+  .filters input,
+  .filters button {
+    padding: 0.5rem 0.8rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    outline: none;
+    background: #fff;
+    transition: border-color 0.2s;
+  }
+  .filters select:focus,
+  .filters input:focus {
+    border-color: #4caf50;
+  }
+  .filters button {
+    background: #4caf50;
+    color: #fff;
+    cursor: pointer;
+    border: none;
+    font-weight: 600;
+  }
+  .filters button:hover {
+    background: #43a047;
+  }
+  
+  /* ========== PRODUCT GRID ========== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+  }
+  
+  /* ========== PRODUCT CARD ========== */
+  .product {
+    width: 240px;      /* 👈 fixed width */
+    height: 320px;     /* 👈 fixed total height */
+    margin: 0 auto;    /* centers the card in its grid cell */
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+
+  /* Fix the image size inside the card */
+  .product img {
+    width: 100%;
+    height: 180px;     /* 👈 keep image height constant */
+    object-fit: cover; /* crop/scale while keeping aspect ratio */
+  }
+  
+  .product:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  .product img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    background: #eee;
+  }
+  
+  .product h3 {
+    margin: 0.7rem 0 0.3rem;
+    font-size: 1.1rem;
+    color: #333;
+  }
+  
+  .product p {
+    margin-bottom: 0.8rem;
+    font-weight: bold;
+    color: #2e7d32;
+    font-size: 1rem;
+  }
+  
+  /* Optional “Add to Cart” button */
+  .product button {
+    margin-bottom: 1rem;
+    padding: 0.4rem 0.8rem;
+    background: #4caf50;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .product button:hover {
+    background: #388e3c;
+  }
+  
+  /* ========== FOOTER ========== */
+  footer {
+    text-align: center;
+    margin: 2rem 0;
+    font-size: 0.9rem;
+    color: #777;
+  }
+  
+  /* ========== RESPONSIVE TWEAKS ========== */
+  @media (max-width: 500px) {
+    header h1 {
+      font-size: 1.8rem;
+    }
+    .filters {
+      flex-direction: column;
+      align-items: center;
+    }
+    .filters select,
+    .filters input,
+    .filters button {
+      width: 100%;
+      max-width: 280px;
+    }
+  }
+  
