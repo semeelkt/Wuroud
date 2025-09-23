@@ -1,45 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KT Family Store</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>KT Family Store - Admin</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <h1>KT Family Store</h1>
-    <p>Footwear • Fancy • Toys • Stationery</p>
-  </header>
+  <!-- LOGIN / SET PASSWORD OVERLAY -->
+  <div id="authOverlay" class="overlay">
+    <div class="authCard">
+      <h2 id="authTitle">Admin Login</h2>
 
-  <!-- Filters -->
-  <section class="filters">
-    <select id="categoryFilter">
-      <option value="all">All Categories</option>
-      <option value="footwear">Footwear</option>
-      <option value="fancy">Fancy</option>
-      <option value="toys">Toys</option>
-      <option value="stationery">Stationery</option>
-    </select>
+      <!-- Set password (shown when none exists) -->
+      <div id="setPassDiv" class="authSection hidden">
+        <p>Set a new admin password (this saves to this browser only):</p>
+        <input id="newPassword" type="password" placeholder="Enter new password" />
+        <input id="newPasswordConfirm" type="password" placeholder="Confirm password" />
+        <button id="setPasswordBtn">Set Password</button>
+      </div>
 
-    <input type="number" id="minPrice" placeholder="Min ₹" />
-    <input type="number" id="maxPrice" placeholder="Max ₹" />
-    <button id="applyFilters">Filter</button>
-  </section>
+      <!-- Login (shown when password exists) -->
+      <div id="loginDiv" class="authSection hidden">
+        <p>Enter admin password to open the site:</p>
+        <input id="passwordInput" type="password" placeholder="Admin password" />
+        <button id="loginBtn">Open Site</button>
+      </div>
 
-  <!-- Products will render here -->
-  <main id="productGrid" class="grid"></main>
+      <p id="authMsg" class="muted"></p>
+    </div>
+  </div>
 
-  <!-- Cart Preview -->
-  <aside id="cartArea" class="cart">
-    <h2>Selected Items</h2>
-    <ul id="cartList"></ul>
-    <p id="cartTotal"></p>
-  </aside>
+  <!-- MAIN APP (hidden until login) -->
+  <div id="app" class="hidden">
+    <header>
+      <h1>KT Family Store (Admin)</h1>
+      <div class="headerRight">
+        <button id="logoutBtn" class="btn small">Logout</button>
+      </div>
+      <p>Footwear • Fancy • Toys • Stationery</p>
+    </header>
 
-  <footer>
-    <p>© 2025 KT Family Store</p>
-  </footer>
+    <!-- Admin Controls -->
+    <section class="adminControls">
+      <form id="addProductForm" class="card">
+        <h3>Add New Product</h3>
+        <input id="pName" placeholder="Product name" required />
+        <input id="pPrice" type="number" placeholder="Price (₹)" required />
+        <select id="pCategory">
+          <option value="footwear">Footwear</option>
+          <option value="fancy">Fancy</option>
+          <option value="toys">Toys</option>
+          <option value="stationery">Stationery</option>
+        </select>
+        <input id="pImg" placeholder="Image path (e.g. img/foo.jpg)" />
+        <button id="addProductBtn" type="button">Add Product</button>
+      </form>
+
+      <div class="filters">
+        <select id="categoryFilter">
+          <option value="all">All Categories</option>
+          <option value="footwear">Footwear</option>
+          <option value="fancy">Fancy</option>
+          <option value="toys">Toys</option>
+          <option value="stationery">Stationery</option>
+        </select>
+
+        <input type="number" id="minPrice" placeholder="Min ₹" />
+        <input type="number" id="maxPrice" placeholder="Max ₹" />
+        <button id="applyFilters">Filter</button>
+      </div>
+    </section>
+
+    <!-- Products Grid -->
+    <main id="productGrid" class="grid"></main>
+
+    <!-- Cart / Bill -->
+    <aside id="cartArea" class="cart">
+      <h2>Selected Items</h2>
+      <ul id="cartList"></ul>
+      <p id="cartTotal"></p>
+      <input id="customerNumber" placeholder="Customer mobile (e.g. 9198XXXXXXXX)" />
+      <button id="generateBillBtn">Generate Bill (download PDF)</button>
+      <button id="sendWhatsAppBtn">Send via WhatsApp</button>
+      <button id="clearCartBtn" class="danger">Clear Cart</button>
+    </aside>
+
+    <footer>
+      <p>© 2025 KT Family Store (Admin)</p>
+    </footer>
+  </div>
 
   <script src="script.js"></script>
 </body>

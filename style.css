@@ -1,160 +1,106 @@
-/* ========== GLOBAL RESET ========== */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-  
-  /* ========== BODY ========== */
-  body {
-    font-family: "Segoe UI", Arial, sans-serif;
-    background: #f9f9f9;
-    color: #333;
-    line-height: 1.5;
-    padding: 0 1rem;
-  }
-  
-  /* ========== HEADER ========== */
-  header {
-    text-align: center;
-    padding: 2rem 0 1rem;
-  }
-  header h1 {
-    font-size: 2.2rem;
-    color: #444;
-    letter-spacing: 0.5px;
-  }
-  header p {
-    font-size: 1rem;
-    color: #666;
-    margin-top: 0.3rem;
-  }
-  
-  /* ========== FILTER SECTION ========== */
-  .filters {
-    display: flex;
-    justify-content: center;
-    gap: 0.5rem;
-    margin: 1.2rem 0 2rem;
-    flex-wrap: wrap;
-  }
-  .filters select,
-  .filters input,
-  .filters button {
-    padding: 0.5rem 0.8rem;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 0.95rem;
-    outline: none;
-    background: #fff;
-    transition: border-color 0.2s;
-  }
-  .filters select:focus,
-  .filters input:focus {
-    border-color: #4caf50;
-  }
-  .filters button {
-    background: #4caf50;
-    color: #fff;
-    cursor: pointer;
-    border: none;
-    font-weight: 600;
-  }
-  .filters button:hover {
-    background: #43a047;
-  }
-  
-  /* ========== PRODUCT GRID ========== */
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1.5rem;
-    padding-bottom: 2rem;
-  }
-  
-  /* ========== PRODUCT CARD ========== */
-  .product {
-    width: 240px;      /* 👈 fixed width */
-    height: 320px;     /* 👈 fixed total height */
-    margin: 0 auto;    /* centers the card in its grid cell */
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-  
+/* RESET */
+* { margin:0; padding:0; box-sizing:border-box; }
 
-  /* Fix the image size inside the card */
-  .product img {
-    width: 100%;
-    height: 180px;     /* 👈 keep image height constant */
-    object-fit: cover; /* crop/scale while keeping aspect ratio */
-  }
-  
-  .product:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-  }
-  
-  .product img {
-    width: 100%;
-    height: 180px;
-    object-fit: cover;
-    background: #eee;
-  }
-  
-  .product h3 {
-    margin: 0.7rem 0 0.3rem;
-    font-size: 1.1rem;
-    color: #333;
-  }
-  
-  .product p {
-    margin-bottom: 0.8rem;
-    font-weight: bold;
-    color: #2e7d32;
-    font-size: 1rem;
-  }
-  
-  /* Optional “Add to Cart” button */
-  .product button {
-    margin-bottom: 1rem;
-    padding: 0.4rem 0.8rem;
-    background: #4caf50;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .product button:hover {
-    background: #388e3c;
-  }
-  
-  /* ========== FOOTER ========== */
-  footer {
-    text-align: center;
-    margin: 2rem 0;
-    font-size: 0.9rem;
-    color: #777;
-  }
-  
-  /* ========== RESPONSIVE TWEAKS ========== */
-  @media (max-width: 500px) {
-    header h1 {
-      font-size: 1.8rem;
-    }
-    .filters {
-      flex-direction: column;
-      align-items: center;
-    }
-    .filters select,
-    .filters input,
-    .filters button {
-      width: 100%;
-      max-width: 280px;
-    }
-  }
-  
+/* BODY */
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background:#f6f7f9;
+  color:#222;
+  padding: 0 1rem 3rem;
+}
+
+/* OVERLAY - LOGIN / SET PASSWORD */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,10,10,0.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+.authCard {
+  background:#fff;
+  width: 92%;
+  max-width:420px;
+  padding:1.6rem;
+  border-radius:10px;
+  box-shadow:0 8px 30px rgba(0,0,0,0.2);
+  text-align:center;
+}
+.authCard h2 { margin-bottom:0.6rem; }
+.authCard input {
+  width:100%; padding:0.6rem; margin:0.6rem 0; border-radius:6px; border:1px solid #ddd;
+}
+.authCard button {
+  padding:0.6rem 0.9rem; border-radius:6px; background:#4caf50; color:#fff; border:none; font-weight:600; cursor:pointer;
+}
+.muted { color:#666; margin-top:0.6rem; font-size:0.95rem; }
+
+/* HIDE HELPERS */
+.hidden { display:none; }
+
+/* HEADER */
+header { text-align:center; padding:1.4rem 0 0.6rem; }
+header h1 { font-size:1.6rem; color:#333; }
+.headerRight { position:absolute; right:1rem; top:0.8rem; }
+
+/* ADMIN CONTROLS */
+.adminControls { display:flex; gap:1rem; align-items:flex-start; justify-content:center; flex-wrap:wrap; margin:1rem 0; }
+.card { background:#fff; padding:1rem; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.06); min-width:260px; }
+.card input, .card select { width:100%; padding:0.5rem; margin:0.45rem 0; border-radius:6px; border:1px solid #ddd; }
+
+/* FILTERS (reuse) */
+.filters { display:flex; gap:0.5rem; align-items:center; margin-top:0.8rem; flex-wrap:wrap; justify-content:center; }
+.filters input, .filters select, .filters button { padding:0.5rem; border-radius:6px; border:1px solid #ccc; background:#fff; }
+
+/* GRID */
+.grid {
+  display:grid;
+  justify-content:center;
+  grid-template-columns: repeat(auto-fit, 240px);
+  gap:1.2rem;
+  margin-top:1.2rem;
+  padding-bottom:2rem;
+}
+
+/* PRODUCT CARD FIXED SIZE */
+.product {
+  width:240px;
+  height:320px;
+  margin:0 auto;
+  background:#fff; border-radius:10px; overflow:hidden;
+  box-shadow:0 4px 6px rgba(0,0,0,0.08); text-align:center; display:flex; flex-direction:column; justify-content:flex-start;
+}
+.product img { width:100%; height:160px; object-fit:cover; background:#efefef; }
+.product h3 { margin:0.6rem 0 0.2rem; font-size:1rem; padding:0 0.6rem; }
+.product p { margin-top:auto; margin-bottom:0.6rem; font-weight:700; color:#2e7d32; }
+
+/* PRODUCT BUTTON */
+.product button { margin:0.6rem auto 1rem; padding:0.45rem 0.8rem; border:none; border-radius:6px; background:#4caf50; color:#fff; cursor:pointer; }
+
+/* CART / ASIDE */
+.cart {
+  position: fixed;
+  right:1rem;
+  top:6.4rem;
+  width: 260px;
+  background:#fff; border-radius:8px; padding:0.9rem; box-shadow:0 6px 24px rgba(0,0,0,0.12);
+}
+.cart h2 { font-size:1.05rem; margin-bottom:0.5rem; }
+.cart ul { list-style:none; max-height:240px; overflow:auto; margin-bottom:0.6rem; }
+.cart input { width:100%; padding:0.5rem; margin-bottom:0.45rem; border-radius:6px; border:1px solid #ddd; }
+
+/* FOOTER */
+footer { text-align:center; margin-top:4rem; color:#666; }
+
+/* BUTTON STYLES */
+.btn { padding:0.4rem 0.6rem; border-radius:6px; background:#4caf50; color:#fff; border:none; cursor:pointer; }
+.small { font-size:0.85rem; padding:0.3rem 0.5rem; }
+.danger { background:#e53935; color:#fff; border:none; margin-top:0.4rem; }
+
+/* RESPONSIVE */
+@media(max-width:800px){
+  .cart { position: static; width: 100%; margin: 1rem 0 0; }
+  .adminControls { flex-direction:column; align-items:center; }
+}
