@@ -81,12 +81,15 @@ header h1 { font-size:1.6rem; color:#333; }
 
 /* CART / ASIDE */
 .cart {
-  position: fixed;
-  right:1rem;
-  top:6.4rem;
-  width: 260px;
-  background:#fff; border-radius:8px; padding:0.9rem; box-shadow:0 6px 24px rgba(0,0,0,0.12);
+  position: static;      /* normal flow */
+  max-width: 600px;      /* optional width */
+  margin: 2rem auto;     /* center and add space */
+  background:#fff;
+  border-radius:8px;
+  padding:1rem;
+  box-shadow:0 6px 24px rgba(0,0,0,0.12);
 }
+
 .cart h2 { font-size:1.05rem; margin-bottom:0.5rem; }
 .cart ul { list-style:none; max-height:240px; overflow:auto; margin-bottom:0.6rem; }
 .cart input { width:100%; padding:0.5rem; margin-bottom:0.45rem; border-radius:6px; border:1px solid #ddd; }
