@@ -79,17 +79,27 @@ header h1 { font-size:1.6rem; color:#333; }
 /* PRODUCT BUTTON */
 .product button { margin:0.6rem auto 1rem; padding:0.45rem 0.8rem; border:none; border-radius:6px; background:#4caf50; color:#fff; cursor:pointer; }
 
+/* REMOVE BUTTON */
+.remove-btn {
+  margin: 0.6rem auto 1rem;
+  padding: 0.45rem 0.8rem;
+  border: none;
+  border-radius: 6px;
+  background: #e53935;
+  color: #fff;
+  cursor: pointer;
+}
+
 /* CART / ASIDE */
 .cart {
-  position: static;      /* normal flow */
-  max-width: 600px;      /* optional width */
-  margin: 2rem auto;     /* center and add space */
+  position: static;
+  max-width: 600px;
+  margin: 2rem auto;
   background:#fff;
   border-radius:8px;
   padding:1rem;
   box-shadow:0 6px 24px rgba(0,0,0,0.12);
 }
-
 .cart h2 { font-size:1.05rem; margin-bottom:0.5rem; }
 .cart ul { list-style:none; max-height:240px; overflow:auto; margin-bottom:0.6rem; }
 .cart input { width:100%; padding:0.5rem; margin-bottom:0.45rem; border-radius:6px; border:1px solid #ddd; }

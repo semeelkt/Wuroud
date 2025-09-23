@@ -1,7 +1,3 @@
-/* =========================================================
-   KT Family Store Admin Panel  (Pure Front-End, no backend)
-   ========================================================= */
-
 /* ---------- AUTH (password gate) ---------- */
 // Keys
 const AUTH_KEY   = 'kt_admin_pw';    // localStorage: SHA-256 hash of admin password
@@ -92,9 +88,9 @@ const PRODUCTS_KEY = 'kt_products_v1';
 let products = [
   { name: "Red Sneakers",    price: 799, category: "footwear",  img: "img/red-shoes.jpg" },
   { name: "Sparkle Hair Clip", price: 120, category: "fancy",   img: "img/hair-clip.jpg" },
-  { name: "RC Car",          price: 999, category: "toys",      img: "img/rc-car.jpg" },
-  { name: "Notebook Pack",   price: 60,  category: "stationery",img: "img/notebook.jpg" },
-  { name: "Blue Sandals",    price: 450, category: "footwear",  img: "img/sandals.jpg" }
+  { name: "RC Car",           price: 999, category: "toys",     img: "img/rc-car.jpg" },
+  { name: "Notebook Pack",    price: 60,  category: "stationery",img: "img/notebook.jpg" },
+  { name: "Blue Sandals",     price: 450, category: "footwear",  img: "img/sandals.jpg" }
 ];
 
 function saveProductsToStorage() {
@@ -107,10 +103,10 @@ function loadProductsFromStorage() {
   catch { saveProductsToStorage(); }
 }
 
-const grid          = document.getElementById('productGrid');
-const categoryFilter= document.getElementById('categoryFilter');
-const minPrice      = document.getElementById('minPrice');
-const maxPrice      = document.getElementById('maxPrice');
+const grid           = document.getElementById('productGrid');
+const categoryFilter = document.getElementById('categoryFilter');
+const minPrice       = document.getElementById('minPrice');
+const maxPrice       = document.getElementById('maxPrice');
 document.getElementById('applyFilters').addEventListener('click', filterProducts);
 
 function displayProducts(items) {
@@ -120,6 +116,7 @@ function displayProducts(items) {
       <h3>${p.name}</h3>
       <p>₹${p.price}</p>
       <button onclick="addToCart(${i})">Add to Bill</button>
+      <button onclick="removeProduct(${i})" class="remove-btn">Remove</button>
     </div>`).join('');
 }
 
@@ -174,8 +171,8 @@ function updateCart() {
   cartList.innerHTML = cart.map((it, idx) => {
     total += it.price;
     return `<li>${it.name} - ₹${it.price}
-              <button class="remove-btn" onclick="removeFromCart(${idx})">❌</button>
-            </li>`;
+          <button class="remove-btn" onclick="removeFromCart(${idx})">❌</button>
+        </li>`;
   }).join('');
   cartTotal.textContent = cart.length ? `Total: ₹${total}` : 'No items selected.';
 }
@@ -186,6 +183,15 @@ clearCartBtn.addEventListener('click', () => {
     updateCart();
   }
 });
+
+// Remove product from products list
+function removeProduct(index) {
+  if (confirm('Remove this product?')) {
+    products.splice(index, 1); // Remove product from array
+    saveProductsToStorage();   // Update localStorage
+    displayProducts(products); // Refresh display
+  }
+}
 
 // Print-friendly bill
 generateBillBtn.addEventListener('click', () => {
@@ -244,3 +250,4 @@ if (sessionStorage.getItem(LOGGED_KEY) === '1') openApp();
 window.addToCart = addToCart;
 window.removeFromCart = removeFromCart;
 window.filterProducts = filterProducts;
+window.removeProduct = removeProduct;
