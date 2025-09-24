@@ -134,6 +134,18 @@ generateBillBtn.addEventListener('click', () => {
   w.document.write(buildBillHTML());
   w.document.close();
 });
+generateBillBtn.addEventListener('click', () => {
+  if (!cart.length) return alert('No items in bill');
+
+  const w = window.open('', '_blank');
+  w.document.write(buildBillHTML());
+  w.document.close();
+  
+  // Wait for content to load, then trigger print
+  w.focus();
+  w.print();
+});
+
 
 // WhatsApp send
 sendWhatsAppBtn.addEventListener('click', () => {
