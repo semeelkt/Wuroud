@@ -1,9 +1,5 @@
-/* ---------- FIREBASE SETUP ---------- */
-const db = window.db; // Firestore from your HTML module
-const { collection, addDoc, getDocs, deleteDoc, doc } = window.firebaseFuncs;
-const PRODUCTS_COL = 'products'; // Firestore collection name
-
-/* ---------- PRODUCTS ---------- */
+/* ---------- PRODUCTS (localStorage) ---------- */
+const PRODUCTS_KEY = 'kt_products_v1';
 let products = [];
 
 // DOM elements
@@ -15,35 +11,32 @@ const pImg           = document.getElementById('pImg');
 const categoryFilter = document.getElementById('categoryFilter');
 const minPrice       = document.getElementById('minPrice');
 const maxPrice       = document.getElementById('maxPrice');
-const searchInput    = document.getElementById('searchInput');
 
 document.getElementById('applyFilters').addEventListener('click', filterProducts);
 
-/* ---------- FIRESTORE FUNCTIONS ---------- */
-
-// Load products from Firestore
-async function loadProductsFromFirestore() {
-  const snapshot = await getDocs(collection(db, PRODUCTS_COL));
-  products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  displayProducts(products);
+// Load products from localStorage
+function loadProductsFromStorage() {
+  const raw = localStorage.getItem(PRODUCTS_KEY);
+  if (!raw) {
+    products = [
+      { name: "Red Sneakers",      price: 799, category: "footwear",  img: "img/red-shoes.jpg" },
+      { name: "Sparkle Hair Clip", price: 120, category: "fancy",     img: "img/hair-clip.jpg" },
+      { name: "RC Car",            price: 999, category: "toys",      img: "img/rc-car.jpg" },
+      { name: "Notebook Pack",     price: 60,  category: "stationery",img: "img/notebook.jpg" },
+      { name: "Blue Sandals",      price: 450, category: "footwear",  img: "img/sandals.jpg" }
+    ];
+    saveProductsToStorage();
+  } else {
+    products = JSON.parse(raw);
+  }
 }
 
-// Add product to Firestore
-async function addProductToFirestore(product) {
-  const docRef = await addDoc(collection(db, PRODUCTS_COL), product);
-  product.id = docRef.id;
-  products.push(product);
-  displayProducts(products);
+// Save products to localStorage
+function saveProductsToStorage() {
+  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
 }
 
-// Remove product from Firestore
-async function removeProductFromFirestore(id) {
-  await deleteDoc(doc(db, PRODUCTS_COL, id));
-  products = products.filter(p => p.id !== id);
-  displayProducts(products);
-}
-
-/* ---------- DISPLAY ---------- */
+// Display products (fixed for filtered cart)
 function displayProducts(items) {
   grid.innerHTML = items.map((p) => `
     <div class="product">
@@ -51,51 +44,63 @@ function displayProducts(items) {
       <h3>${p.name}</h3>
       <p>₹${p.price}</p>
       <button onclick="addToCartObj(${JSON.stringify(p).replace(/"/g, '&quot;')})">Add to Bill</button>
-      <button onclick="removeProductById('${p.id}')" class="remove-btn">Remove</button>
+      <button onclick="removeProductByName('${p.name}')" class="remove-btn">Remove</button>
     </div>`).join('');
 }
 
-/* ---------- FILTER ---------- */
+// Filter products
 function filterProducts() {
   const cat = categoryFilter.value;
   const min = parseInt(minPrice.value) || 0;
   const max = parseInt(maxPrice.value) || Infinity;
-  const search = searchInput.value.trim().toLowerCase();
-
   const filtered = products.filter(p =>
     (cat === 'all' || p.category === cat) &&
-    p.price >= min && p.price <= max &&
-    p.name.toLowerCase().includes(search)
+    p.price >= min && p.price <= max
   );
-
   displayProducts(filtered);
 }
 
-/* ---------- ADD / REMOVE ---------- */
-document.getElementById('addProductBtn').addEventListener('click', async () => {
+// Add product
+document.getElementById('addProductBtn').addEventListener('click', () => {
   const name = pName.value.trim();
   const price = parseInt(pPrice.value);
   if (!name || isNaN(price)) return alert('Enter valid name & price');
 
-  const product = {
+  products.push({
     name,
     price,
     category: pCategory.value,
     img: pImg.value.trim()
-  };
-
-  await addProductToFirestore(product);
+  });
+  saveProductsToStorage();
   pName.value = pPrice.value = pImg.value = '';
+  displayProducts(products);
 });
 
-async function removeProductById(id) {
-  if (confirm('Remove this product?')) {
-    await removeProductFromFirestore(id);
+// Remove product by name
+function removeProductByName(name) {
+  const idx = products.findIndex(p => p.name === name);
+  if (idx !== -1 && confirm('Remove this product?')) {
+    products.splice(idx, 1);
+    saveProductsToStorage();
+    displayProducts(products);
   }
 }
 
-/* ---------- CART & BILL ---------- */
+// Add to cart by object (fix filtered mismatch)
 let cart = [];
+function addToCartObj(product) {
+  cart.push(product);
+  updateCart();
+}
+
+// Remove from cart
+function removeFromCart(i) {
+  cart.splice(i, 1);
+  updateCart();
+}
+
+// Update cart display
 const cartList       = document.getElementById('cartList');
 const cartTotal      = document.getElementById('cartTotal');
 const customerNumber = document.getElementById('customerNumber');
@@ -103,9 +108,6 @@ const generateBillBtn = document.getElementById('generateBillBtn');
 const sendWhatsAppBtn = document.getElementById('sendWhatsAppBtn');
 const clearCartBtn    = document.getElementById('clearCartBtn');
 const downloadPdfBtn  = document.getElementById('downloadPdfBtn');
-
-function addToCartObj(product) { cart.push(product); updateCart(); }
-function removeFromCart(i) { cart.splice(i, 1); updateCart(); }
 
 function updateCart() {
   let total = 0;
@@ -131,9 +133,19 @@ generateBillBtn.addEventListener('click', () => {
   const w = window.open('', '_blank');
   w.document.write(buildBillHTML());
   w.document.close();
+});
+generateBillBtn.addEventListener('click', () => {
+  if (!cart.length) return alert('No items in bill');
+
+  const w = window.open('', '_blank');
+  w.document.write(buildBillHTML());
+  w.document.close();
+  
+  // Wait for content to load, then trigger print
   w.focus();
   w.print();
 });
+
 
 // WhatsApp send
 sendWhatsAppBtn.addEventListener('click', () => {
@@ -153,6 +165,7 @@ sendWhatsAppBtn.addEventListener('click', () => {
 // Download as PDF
 downloadPdfBtn.addEventListener('click', () => {
   if (!cart.length) return alert('No items in bill');
+
   const tempDiv = document.createElement('div');
   let total = 0;
   const rows = cart.map((it, i) => {
@@ -219,10 +232,11 @@ function buildBillHTML() {
 }
 
 /* ---------- INIT ---------- */
-loadProductsFromFirestore();
+loadProductsFromStorage();
+displayProducts(products);
 
-/* ---------- Expose globals ---------- */
+/* Expose globals for inline onclicks */
 window.addToCartObj = addToCartObj;
 window.removeFromCart = removeFromCart;
 window.filterProducts = filterProducts;
-window.removeProductById = removeProductById;
+window.removeProductByName = removeProductByName;
