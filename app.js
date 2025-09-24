@@ -2,7 +2,7 @@
 // Requires firebase-config.js to set window.FIREBASE_CONFIG
 console.log("app.js is loaded!");
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc, updateDoc, query, orderBy, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc, query, orderBy, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 // Initialize Firebase
@@ -205,7 +205,103 @@ function updateTotal() {
   grandTotalEl.textContent = `₹${total.toLocaleString()}`;
 }
 
-// Helper function to escape HTML
+/* Bill Download (PDF) */
+generatePdfBtn.addEventListener("click", () => {
+  const { jsPDF } = window.jspdf;  // Using jsPDF from the window object
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const head = [['Item', 'Qty', 'Price', 'Subtotal']];
+  const body = cart.map(i => [
+    i.name, String(i.qty), `₹${i.price.toLocaleString()}`, `₹${(i.price * i.qty).toLocaleString()}`
+  ]);
+  
+  doc.setFontSize(14);
+  doc.text("Wuroud Bill", 40, 40);
+  doc.setFontSize(10);
+  doc.text(`Mobile: ${custMobile.value || '-'}`, 40, 60);
+  doc.autoTable({
+    head: head,
+    body: body,
+    startY: 90,
+    theme: 'grid',
+    headStyles: { fillColor: [240, 240, 240] },
+  });
+  
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  doc.text(`Total: ₹${total.toLocaleString()}`, 40, doc.lastAutoTable.finalY + 30);
+  doc.save(`Wuroud-bill-${Date.now()}.pdf`);
+});
+
+/* Print Bill */
+printBtn.addEventListener("click", () => {
+  // open new window with printable table
+  const w = window.open("", "_blank");
+  const html = printableHtml();
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  w.print();
+  // optional: w.close();
+});
+
+// Share via WhatsApp
+whatsappBtn.addEventListener("click", () => {
+  if (cart.length === 0) return alert("Cart empty");
+  const phone = custMobile.value.trim();
+  let message = `*Wuroud Bill*%0A`;
+  
+  cart.forEach(i => {
+    message += `${i.name} x${i.qty} = ₹${(i.price * i.qty).toLocaleString()}%0A`;
+  });
+  
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  message += `%0ATotal: ₹${total.toLocaleString()}`;
+  const url = phone ? `https://wa.me/${phone}?text=${message}` : `https://wa.me/?text=${message}`;
+  
+  window.open(url, '_blank');
+});
+
+/* Clear Bill */
+clearBillBtn.addEventListener("click", () => {
+  if (confirm("Clear cart?")) {
+    cart = [];
+    renderCart();
+  }
+});
+
+/* HTML for printing */
+function printableHtml() {
+  const rows = cart.map(i => `
+    <tr>
+      <td>${escapeHtml(i.name)}</td>
+      <td style="text-align:center">${i.qty}</td>
+      <td>₹${(i.price).toLocaleString()}</td>
+      <td>₹${(i.price * i.qty).toLocaleString()}</td>
+    </tr>`).join("");
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0).toLocaleString();
+  
+  return `
+    <html><head><title>Wuroud Bill</title>
+      <style>
+        body{font-family:Inter, Arial; padding:20px; color:#111}
+        table{width:100%;border-collapse:collapse}
+        td,th{padding:8px;border:1px solid #eee}
+        h2{margin:0 0 10px 0}
+      </style>
+    </head>
+    <body>
+      <h2>Wuroud Bill</h2>
+      <div>Mobile: ${escapeHtml(custMobile.value || '-')}</div>
+      <br/>
+      <table>
+        <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Sub</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td colspan="3"><b>Total</b></td><td>₹${total}</td></tr></tfoot>
+      </table>
+    </body></html>
+  `;
+}
+
+/* Helper function to escape HTML */
 function escapeHtml(str) {
   return String(str || "").replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[s]);
 }
