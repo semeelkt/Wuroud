@@ -1,5 +1,6 @@
 // app.js
 // Requires firebase-config.js to set window.FIREBASE_CONFIG
+console.log("app.js is loaded!");
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
