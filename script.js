@@ -1,5 +1,9 @@
-/* ---------- PRODUCTS (localStorage) ---------- */
-const PRODUCTS_KEY = 'kt_products_v1';
+/* ---------- FIREBASE SETUP ---------- */
+const db = window.db; // Firestore from your HTML module
+const { collection, addDoc, getDocs, deleteDoc, doc } = window.firebaseFuncs;
+const PRODUCTS_COL = 'products'; // Firestore collection name
+
+/* ---------- PRODUCTS ---------- */
 let products = [];
 
 // DOM elements
@@ -15,29 +19,31 @@ const searchInput    = document.getElementById('searchInput');
 
 document.getElementById('applyFilters').addEventListener('click', filterProducts);
 
-// Load products from localStorage
-function loadProductsFromStorage() {
-  const raw = localStorage.getItem(PRODUCTS_KEY);
-  if (!raw) {
-    products = [
-      { name: "Red Sneakers",      price: 799, category: "footwear",  img: "img/red-shoes.jpg" },
-      { name: "Sparkle Hair Clip", price: 120, category: "fancy",     img: "img/hair-clip.jpg" },
-      { name: "RC Car",            price: 999, category: "toys",      img: "img/rc-car.jpg" },
-      { name: "Notebook Pack",     price: 60,  category: "stationery",img: "img/notebook.jpg" },
-      { name: "Blue Sandals",      price: 450, category: "footwear",  img: "img/sandals.jpg" }
-    ];
-    saveProductsToStorage();
-  } else {
-    products = JSON.parse(raw);
-  }
+/* ---------- FIRESTORE FUNCTIONS ---------- */
+
+// Load products from Firestore
+async function loadProductsFromFirestore() {
+  const snapshot = await getDocs(collection(db, PRODUCTS_COL));
+  products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  displayProducts(products);
 }
 
-// Save products to localStorage
-function saveProductsToStorage() {
-  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+// Add product to Firestore
+async function addProductToFirestore(product) {
+  const docRef = await addDoc(collection(db, PRODUCTS_COL), product);
+  product.id = docRef.id;
+  products.push(product);
+  displayProducts(products);
 }
 
-// Display products
+// Remove product from Firestore
+async function removeProductFromFirestore(id) {
+  await deleteDoc(doc(db, PRODUCTS_COL, id));
+  products = products.filter(p => p.id !== id);
+  displayProducts(products);
+}
+
+/* ---------- DISPLAY ---------- */
 function displayProducts(items) {
   grid.innerHTML = items.map((p) => `
     <div class="product">
@@ -45,11 +51,11 @@ function displayProducts(items) {
       <h3>${p.name}</h3>
       <p>₹${p.price}</p>
       <button onclick="addToCartObj(${JSON.stringify(p).replace(/"/g, '&quot;')})">Add to Bill</button>
-      <button onclick="removeProductByName('${p.name}')" class="remove-btn">Remove</button>
+      <button onclick="removeProductById('${p.id}')" class="remove-btn">Remove</button>
     </div>`).join('');
 }
 
-// Filter products (category + price + search)
+/* ---------- FILTER ---------- */
 function filterProducts() {
   const cat = categoryFilter.value;
   const min = parseInt(minPrice.value) || 0;
@@ -65,34 +71,30 @@ function filterProducts() {
   displayProducts(filtered);
 }
 
-// Add product
-document.getElementById('addProductBtn').addEventListener('click', () => {
+/* ---------- ADD / REMOVE ---------- */
+document.getElementById('addProductBtn').addEventListener('click', async () => {
   const name = pName.value.trim();
   const price = parseInt(pPrice.value);
   if (!name || isNaN(price)) return alert('Enter valid name & price');
 
-  products.push({
+  const product = {
     name,
     price,
     category: pCategory.value,
     img: pImg.value.trim()
-  });
-  saveProductsToStorage();
+  };
+
+  await addProductToFirestore(product);
   pName.value = pPrice.value = pImg.value = '';
-  displayProducts(products);
 });
 
-// Remove product by name
-function removeProductByName(name) {
-  const idx = products.findIndex(p => p.name === name);
-  if (idx !== -1 && confirm('Remove this product?')) {
-    products.splice(idx, 1);
-    saveProductsToStorage();
-    displayProducts(products);
+async function removeProductById(id) {
+  if (confirm('Remove this product?')) {
+    await removeProductFromFirestore(id);
   }
 }
 
-/* ---------- CART ---------- */
+/* ---------- CART & BILL ---------- */
 let cart = [];
 const cartList       = document.getElementById('cartList');
 const cartTotal      = document.getElementById('cartTotal');
@@ -130,7 +132,7 @@ generateBillBtn.addEventListener('click', () => {
   w.document.write(buildBillHTML());
   w.document.close();
   w.focus();
-  w.print(); // trigger print
+  w.print();
 });
 
 // WhatsApp send
@@ -191,7 +193,6 @@ downloadPdfBtn.addEventListener('click', () => {
     .finally(() => tempDiv.remove());
 });
 
-// Build bill HTML for print
 function buildBillHTML() {
   let total = 0;
   const rows = cart.map((it, i) => {
@@ -218,11 +219,10 @@ function buildBillHTML() {
 }
 
 /* ---------- INIT ---------- */
-loadProductsFromStorage();
-displayProducts(products);
+loadProductsFromFirestore();
 
 /* ---------- Expose globals ---------- */
 window.addToCartObj = addToCartObj;
 window.removeFromCart = removeFromCart;
 window.filterProducts = filterProducts;
-window.removeProductByName = removeProductByName;
+window.removeProductById = removeProductById;
