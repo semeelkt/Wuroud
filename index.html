@@ -1,12 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Wuroud - Admin</title>
+
+  <!-- CSS -->
   <link rel="stylesheet" href="style.css" />
+
+  <!-- PDF libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 </head>
 <body>
@@ -14,27 +22,22 @@
   <div id="authOverlay" class="overlay">
     <div class="authCard">
       <h2 id="authTitle">Admin Login</h2>
-
-      <!-- Set password (shown when none exists) -->
       <div id="setPassDiv" class="authSection hidden">
-        <p>Set a new admin password (this saves to this browser only):</p>
+        <p>Set a new admin password (browser only):</p>
         <input id="newPassword" type="password" placeholder="Enter new password" />
         <input id="newPasswordConfirm" type="password" placeholder="Confirm password" />
         <button id="setPasswordBtn">Set Password</button>
       </div>
-
-      <!-- Login (shown when password exists) -->
       <div id="loginDiv" class="authSection hidden">
-        <p>Enter admin password to open the site:</p>
+        <p>Enter admin password:</p>
         <input id="passwordInput" type="password" placeholder="Admin password" />
         <button id="loginBtn">Open Site</button>
       </div>
-
       <p id="authMsg" class="muted"></p>
     </div>
   </div>
 
-  <!-- MAIN APP (hidden until login) -->
+  <!-- MAIN APP -->
   <div id="app" class="hidden">
     <header>
       <h1>Wuroud (Admin)</h1>
@@ -44,39 +47,36 @@
       <p>Footwear • Fancy • Toys • Stationery</p>
     </header>
 
-   <!-- Admin Controls -->
-<section class="adminControls">
-  <form id="addProductForm" class="card">
-    <h3>Add New Product</h3>
-    <input id="pName" placeholder="Product name" required />
-    <input id="pPrice" type="number" placeholder="Price (₹)" required />
-    <select id="pCategory">
-      <option value="footwear">Footwear</option>
-      <option value="fancy">Fancy</option>
-      <option value="toys">Toys</option>
-      <option value="stationery">Stationery</option>
-    </select>
-    <input id="pImg" placeholder="Image path (e.g. img/foo.jpg)" />
-    <button id="addProductBtn" type="button">Add Product</button>
-  </form>
+    <!-- Admin Controls -->
+    <section class="adminControls">
+      <form id="addProductForm" class="card">
+        <h3>Add New Product</h3>
+        <input id="pName" placeholder="Product name" required />
+        <input id="pPrice" type="number" placeholder="Price (₹)" required />
+        <select id="pCategory">
+          <option value="footwear">Footwear</option>
+          <option value="fancy">Fancy</option>
+          <option value="toys">Toys</option>
+          <option value="stationery">Stationery</option>
+        </select>
+        <input id="pImg" placeholder="Image path (e.g. img/foo.jpg)" />
+        <button id="addProductBtn" type="button">Add Product</button>
+      </form>
 
-  <div class="filters">
-    <!-- SEARCH INPUT ADDED -->
-    <input type="text" id="searchInput" placeholder="Search product name..." />
-
-    <select id="categoryFilter">
-      <option value="all">All Categories</option>
-      <option value="footwear">Footwear</option>
-      <option value="fancy">Fancy</option>
-      <option value="toys">Toys</option>
-      <option value="stationery">Stationery</option>
-    </select>
-
-    <input type="number" id="minPrice" placeholder="Min ₹" />
-    <input type="number" id="maxPrice" placeholder="Max ₹" />
-    <button id="applyFilters">Filter</button>
-  </div>
-</section>
+      <div class="filters">
+        <input type="text" id="searchInput" placeholder="Search product name..." />
+        <select id="categoryFilter">
+          <option value="all">All Categories</option>
+          <option value="footwear">Footwear</option>
+          <option value="fancy">Fancy</option>
+          <option value="toys">Toys</option>
+          <option value="stationery">Stationery</option>
+        </select>
+        <input type="number" id="minPrice" placeholder="Min ₹" />
+        <input type="number" id="maxPrice" placeholder="Max ₹" />
+        <button id="applyFilters">Filter</button>
+      </div>
+    </section>
 
     <!-- Products Grid -->
     <main id="productGrid" class="grid"></main>
@@ -87,7 +87,7 @@
       <ul id="cartList"></ul>
       <p id="cartTotal"></p>
       <input id="customerNumber" placeholder="Customer mobile (e.g. 9198XXXXXXXX)" />
-      <button id="generateBillBtn">Generate Bill (download PDF)</button>
+      <button id="generateBillBtn">Generate Bill (print)</button>
       <button id="sendWhatsAppBtn">Send via WhatsApp</button>
       <button id="downloadPdfBtn">Download PDF</button>
       <button id="clearCartBtn" class="danger">Clear Cart</button>
@@ -98,6 +98,7 @@
     </footer>
   </div>
 
+  <!-- JS -->
   <script src="script.js"></script>
 </body>
 </html>
