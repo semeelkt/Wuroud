@@ -2,92 +2,105 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-      <title>Wuroud — Admin / Billing</title>
-      
-        <!-- Google font -->
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-          
-            <!-- CSS -->
-              <link rel="stylesheet" href="style.css">
-              
-              
-                <!-- jsPDF and autotable -->
-                  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-                    </head>
-                    <body>
-                      <header class="site-header">
-                          <div class="container header-inner">
-                                <div class="brand">
-                                        <h1>Wuroud <small>(Admin)</small></h1>
-                                                <div class="tag">Footwear • Fancy • Toys • Stationery</div>
-                                                      </div>
-                                                      
-                                                            <div class="search-area">
-                                                                    <input id="searchInput" placeholder="Search product name..." />
-                                                                            <select id="categoryFilter">
-                                                                                      <option value="all">All Categories</option>
-                                                                                              </select>
-                                                                                                      <input id="minPrice" placeholder="Min ₹" type="number"/>
-                                                                                                              <input id="maxPrice" placeholder="Max ₹" type="number"/>
-                                                                                                                      <button id="applyFilter" class="btn ghost">Filter</button>
-                                                                                                                            </div>
-                                                                                                                                </div>
-                                                                                                                                  </header>
-                                                                                                                                  
-                                                                                                                                 <main class="container">
-                                                                                                                                        <section class="left-col">
-                                                                                                                                              <div class="card add-product">
-                                                                                                                                                      <h3>Add New Product</h3>
-                                                                                                                                                              <input id="pName" placeholder="Product name" />
-                                                                                                                                                                      <input id="pPrice" type="number" placeholder="Price (₹)" />
-                                                                                                                                                                              <select id="pCategoryInput">
-                                                                                                                                                                                        <option value="Footwear">Footwear</option>
-                                                                                                                                                                                                  <option value="Fancy">Fancy</option>
-                                                                                                                                                                                                            <option value="Toys">Toys</option>
-                                                                                                                                                                                                                      <option value="Stationery">Stationery</option>
-                                                                                                                                                                                                                              </select>
-                                                                                                                                                                                                                                      <input id="pImage" placeholder="Image URL (optional)" />
-                                                                                                                                                                                                                                              <button id="addProductBtn" class="btn primary">Add Product</button>
-                                                                                                                                                                                                                                                    </div>
-                                                                                                                                                                                                                                                    
-                                                                                                                                                                                                                                                          <div id="productGrid" class="grid"></div>
-                                                                                                                                                                                                                                                              </section>
-                                                                                                                                                                                                                                                              
-                                                                                                                                                                                                                                                                  <aside class="right-col">
-                                                                                                                                                                                                                                                                        <div class="card bill-card">
-                                                                                                                                                                                                                                                                                <h3>Selected Items</h3>
-                                                                                                                                                                                                                                                                                        <input id="custMobile" placeholder="Customer mobile (e.g. 9198XXXXXXXX)" />
-                                                                                                                                                                                                                                                                                                <div id="billTableWrap">
-                                                                                                                                                                                                                                                                                                          <table id="billTable" class="bill-table">
-                                                                                                                                                                                                                                                                                                                      <thead>
-                                                                                                                                                                                                                                                                                                                                    <tr><th>Item</th><th>Qty</th><th>Price</th><th>Sub</th><th></th></tr>
-                                                                                                                                                                                                                                                                                                                                                </thead>
-                                                                                                                                                                                                                                                                                                                                                            <tbody></tbody>
-                                                                                                                                                                                                                                                                                                                                                                        <tfoot>
-                                                                                                                                                                                                                                                                                                                                                                                      <tr><td colspan="3"><strong>Total</strong></td><td id="grandTotal">₹0</td><td></td></tr>
-                                                                                                                                                                                                                                                                                                                                                                                                  </tfoot>
-                                                                                                                                                                                                                                                                                                                                                                                                            </table>
-                                                                                                                                                                                                                                                                                                                                                                                                                    </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                    
-                                                                                                                                                                                                                                                                                                                                                                                                                            <div class="bill-actions">
-                                                                                                                                                                                                                                                                                                                                                                                                                                      <button id="generatePdf" class="btn">Generate Bill (PDF)</button>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                <button id="printBtn" class="btn">Print</button>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                          <button id="whatsappBtn" class="btn">Send via WhatsApp</button>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <button id="clearBill" class="btn danger">Clear Cart</button>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                            </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      </aside>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </main>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          <footer class="footer container">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              <small>Made with ❤️ — Curler FX vibes. Keep creating, keep grinding.</small>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </footer>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   <!-- App logic -->
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     <script src="app.js" type="module"></script>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  </body>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </html>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wuroud — Admin / Billing</title>
+  
+  <!-- Google font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- jsPDF and autotable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <h1>Wuroud <small>(Admin)</small></h1>
+        <div class="tag">Footwear • Fancy • Toys • Stationery</div>
+      </div>
+
+      <div class="search-area">
+        <input id="searchInput" placeholder="Search product name..." />
+        <select id="categoryFilter">
+          <option value="all">All Categories</option>
+        </select>
+        <input id="minPrice" placeholder="Min ₹" type="number"/>
+        <input id="maxPrice" placeholder="Max ₹" type="number"/>
+        <button id="applyFilter" class="btn ghost">Filter</button>
+      </div>
+    </div>
+  </header>
+  
+  <!-- Authentication Forms -->
+  <div id="authContainer">
+    <div id="loginForm">
+      <input type="email" id="email" placeholder="Email" />
+      <input type="password" id="password" placeholder="Password" />
+      <button id="loginBtn" class="btn primary">Login</button>
+      <button id="signUpBtn" class="btn ghost">Sign Up</button>
+    </div>
+    <button id="logoutBtn" class="btn ghost" style="display:none;">Logout</button>
+  </div>
+
+  <main class="container">
+    <section class="left-col">
+      <div class="card add-product">
+        <h3>Add New Product</h3>
+        <input id="pName" placeholder="Product name" />
+        <input id="pPrice" type="number" placeholder="Price (₹)" />
+        <select id="pCategoryInput">
+          <option value="Footwear">Footwear</option>
+          <option value="Fancy">Fancy</option>
+          <option value="Toys">Toys</option>
+          <option value="Stationery">Stationery</option>
+        </select>
+        <input id="pImage" placeholder="Image URL (optional)" />
+        <button id="addProductBtn" class="btn primary">Add Product</button>
+      </div>
+      <div id="productGrid" class="grid"></div>
+    </section>
+
+    <aside class="right-col">
+      <div class="card bill-card">
+        <h3>Selected Items</h3>
+        <input id="custMobile" placeholder="Customer mobile (e.g. 9198XXXXXXXX)" />
+        <div id="billTableWrap">
+          <table id="billTable" class="bill-table">
+            <thead>
+              <tr><th>Item</th><th>Qty</th><th>Price</th><th>Sub</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+              <tr><td colspan="3"><strong>Total</strong></td><td id="grandTotal">₹0</td><td></td></tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="bill-actions">
+          <button id="generatePdf" class="btn">Generate Bill (PDF)</button>
+          <button id="printBtn" class="btn">Print</button>
+          <button id="whatsappBtn" class="btn">Send via WhatsApp</button>
+          <button id="clearBill" class="btn danger">Clear Cart</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="footer container">
+    <small>Made with ❤️ — Curler FX vibes. Keep creating, keep grinding.</small>
+  </footer>
+
+  <!-- App logic -->
+  <script src="app.js" type="module"></script>
+
+</body>
+</html>

@@ -179,6 +179,81 @@ function renderCart() {
       <td><button class="btn ghost small-remove">Remove</button></td>
     </tr>`;
   }).join("") || `<tr><td colspan="5" style="color:var(--muted)">No items yet</td></tr>`;
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { firebaseConfig } from "./firebase-config.js";
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore(app);
+
+// UI Elements
+const loginForm = document.getElementById("loginForm");
+const authContainer = document.getElementById("authContainer");
+const productGrid = document.getElementById("productGrid");
+const addProductBtn = document.getElementById("addProductBtn");
+const pName = document.getElementById("pName");
+const pPrice = document.getElementById("pPrice");
+const pCategoryInput = document.getElementById("pCategoryInput");
+const pImage = document.getElementById("pImage");
+const logoutBtn = document.getElementById("logoutBtn");
+
+// Firebase Firestore Collection
+const productsCol = collection(db, "products");
+
+// Event listeners for Authentication
+document.getElementById("loginBtn").addEventListener("click", async () => {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+  
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    showAuthUI(false);  // Hide login form
+    loadProducts();     // Load user-specific products
+  } catch (error) {
+    console.error("Error signing in: ", error.message);
+  }
+});
+
+document.getElementById("signUpBtn").addEventListener("click", async () => {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+  
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+    alert("Account created successfully");
+  } catch (error) {
+    console.error("Error signing up: ", error.message);
+  }
+});
+
+logoutBtn.addEventListener("click", async () => {
+  await signOut(auth);
+  showAuthUI(true);  // Show login form
+  productGrid.innerHTML = ''; // Clear products
+});
+
+// Display auth UI based on login status
+function showAuthUI(isLoggedOut) {
+  loginForm.style.display = isLoggedOut ? "block" : "none";
+  logoutBtn.style.display = isLoggedOut ? "none" : "block";
+  authContainer.style.display = isLoggedOut ? "block" : "none";
+}
+
+// Add product to Firestore
+addProductBtn.addEventListener("click", async () => {
+  const name = pName.value.trim();
+  const price = Number(pPrice.value);
+  const category = pCategoryInput.value;
+  const image = pImage.value.trim();
+  const user = auth.currentUser;
+
+  if (!name || !price) return alert("Please enter product name and price.");
+  
+  if (user) {
+    await add
 
   // Attach events
   document.querySelectorAll("#billTable .qty-input").forEach(input => {
@@ -194,7 +269,7 @@ function renderCart() {
       const id = e.target.closest("tr").dataset.id;
       removeFromCart(id);
     };
-  });
+  }); 
 
   updateTotal();
 }
