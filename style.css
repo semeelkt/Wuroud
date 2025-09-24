@@ -35,6 +35,110 @@ body{
   align-items:center;
   justify-content:space-between;
 }
+/* Login container styling */
+#authContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: var(--bg);
+}
+
+#loginForm {
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 40px 30px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  animation: fadeIn 1s ease-in-out;
+}
+
+/* Input fields styling */
+#loginForm input {
+  width: 100%;
+  padding: 14px 16px;
+  margin: 10px 0;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: #f7f7f7;
+  box-sizing: border-box;
+}
+
+#loginForm input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background-color: #fff;
+}
+
+/* Button styling */
+#loginForm .btn {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 15px;
+  transition: transform 0.1s ease, box-shadow 0.3s ease;
+  border: none;
+}
+
+#loginForm .btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Primary button (Login) */
+#loginForm .btn.primary {
+  background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+  color: white;
+  box-shadow: 0 6px 18px rgba(39, 106, 74, 0.18);
+}
+
+/* Ghost button (Sign Up) */
+#loginForm .btn.ghost {
+  background: transparent;
+  border: 1px solid #ddd;
+  color: var(--accent);
+}
+
+#loginForm .btn.ghost:hover {
+  background: var(--accent);
+  color: white;
+}
+
+/* Button for logout */
+#logoutBtn {
+  display: none;
+  margin-top: 15px;
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  background: var(--danger);
+  color: white;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.3s ease;
+}
+
+#logoutBtn:hover {
+  transform: translateY(-2px);
+}
+
+/* Fade in animation for the login form */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .brand h1{
   margin:0;
   font-weight:800;
