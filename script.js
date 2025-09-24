@@ -11,6 +11,7 @@ const pImg           = document.getElementById('pImg');
 const categoryFilter = document.getElementById('categoryFilter');
 const minPrice       = document.getElementById('minPrice');
 const maxPrice       = document.getElementById('maxPrice');
+const searchInput    = document.getElementById('searchInput');
 
 document.getElementById('applyFilters').addEventListener('click', filterProducts);
 
@@ -36,7 +37,7 @@ function saveProductsToStorage() {
   localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
 }
 
-// Display products (fixed for filtered cart)
+// Display products
 function displayProducts(items) {
   grid.innerHTML = items.map((p) => `
     <div class="product">
@@ -48,15 +49,19 @@ function displayProducts(items) {
     </div>`).join('');
 }
 
-// Filter products
+// Filter products (category + price + search)
 function filterProducts() {
   const cat = categoryFilter.value;
   const min = parseInt(minPrice.value) || 0;
   const max = parseInt(maxPrice.value) || Infinity;
+  const search = searchInput.value.trim().toLowerCase();
+
   const filtered = products.filter(p =>
     (cat === 'all' || p.category === cat) &&
-    p.price >= min && p.price <= max
+    p.price >= min && p.price <= max &&
+    p.name.toLowerCase().includes(search)
   );
+
   displayProducts(filtered);
 }
 
@@ -87,20 +92,8 @@ function removeProductByName(name) {
   }
 }
 
-// Add to cart by object (fix filtered mismatch)
+/* ---------- CART ---------- */
 let cart = [];
-function addToCartObj(product) {
-  cart.push(product);
-  updateCart();
-}
-
-// Remove from cart
-function removeFromCart(i) {
-  cart.splice(i, 1);
-  updateCart();
-}
-
-// Update cart display
 const cartList       = document.getElementById('cartList');
 const cartTotal      = document.getElementById('cartTotal');
 const customerNumber = document.getElementById('customerNumber');
@@ -108,6 +101,9 @@ const generateBillBtn = document.getElementById('generateBillBtn');
 const sendWhatsAppBtn = document.getElementById('sendWhatsAppBtn');
 const clearCartBtn    = document.getElementById('clearCartBtn');
 const downloadPdfBtn  = document.getElementById('downloadPdfBtn');
+
+function addToCartObj(product) { cart.push(product); updateCart(); }
+function removeFromCart(i) { cart.splice(i, 1); updateCart(); }
 
 function updateCart() {
   let total = 0;
@@ -133,19 +129,9 @@ generateBillBtn.addEventListener('click', () => {
   const w = window.open('', '_blank');
   w.document.write(buildBillHTML());
   w.document.close();
-});
-generateBillBtn.addEventListener('click', () => {
-  if (!cart.length) return alert('No items in bill');
-
-  const w = window.open('', '_blank');
-  w.document.write(buildBillHTML());
-  w.document.close();
-  
-  // Wait for content to load, then trigger print
   w.focus();
-  w.print();
+  w.print(); // trigger print
 });
-
 
 // WhatsApp send
 sendWhatsAppBtn.addEventListener('click', () => {
@@ -165,7 +151,6 @@ sendWhatsAppBtn.addEventListener('click', () => {
 // Download as PDF
 downloadPdfBtn.addEventListener('click', () => {
   if (!cart.length) return alert('No items in bill');
-
   const tempDiv = document.createElement('div');
   let total = 0;
   const rows = cart.map((it, i) => {
@@ -206,6 +191,7 @@ downloadPdfBtn.addEventListener('click', () => {
     .finally(() => tempDiv.remove());
 });
 
+// Build bill HTML for print
 function buildBillHTML() {
   let total = 0;
   const rows = cart.map((it, i) => {
@@ -235,7 +221,7 @@ function buildBillHTML() {
 loadProductsFromStorage();
 displayProducts(products);
 
-/* Expose globals for inline onclicks */
+/* ---------- Expose globals ---------- */
 window.addToCartObj = addToCartObj;
 window.removeFromCart = removeFromCart;
 window.filterProducts = filterProducts;
