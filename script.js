@@ -202,19 +202,21 @@ generateBillBtn.addEventListener('click', () => {
   w.print();
 });
 
-// WhatsApp send
 sendWhatsAppBtn.addEventListener('click', () => {
   if (!cart.length) return alert('No items in bill');
-  const num = customerNumber.value.trim();
-  if (!num) return alert('Enter customer mobile (e.g. 91XXXXXXXXXX)');
-  let total = 0;
-  const lines = cart.map((it, i) => {
-    total += it.price;
-    return `${i + 1}. ${it.name} - ₹${it.price}`;
+
+  // Build the bill content
+  const billContent = document.createElement('div');
+  billContent.innerHTML = buildBillHTML();
+
+  // Generate and download PDF
+  html2pdf().from(billContent).set({
+    margin: 0.5,
+    filename: 'KT_Family_Bill.pdf',
+    html2canvas: { scale: 2 }
+  }).save().then(() => {
+    alert('PDF generated! You can now open WhatsApp and share the file.');
   });
-  lines.unshift('KT Family Store - Bill', '----------------------');
-  lines.push('----------------------', `Total: ₹${total}`);
-  window.open(`https://wa.me/${num}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
 });
 
 function buildBillHTML() {
