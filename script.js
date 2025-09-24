@@ -221,22 +221,24 @@ const downloadPdfBtn = document.getElementById('downloadPdfBtn');
 downloadPdfBtn.addEventListener('click', () => {
   if (!cart.length) return alert('No items in bill');
 
-  // Generate HTML for bill
-  const billHTML = buildBillHTML();
+  // Create a temporary div to hold the bill HTML
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = buildBillHTML();
+  document.body.appendChild(tempDiv);
 
-  // Convert HTML to PDF using jsPDF
-  const doc = new jsPDF();
-  
-  // Simple approach: add bill HTML as text
-  doc.html(billHTML, {
-    callback: function(doc) {
-      doc.save('KT-Family-Store-Bill.pdf');
-    },
-    x: 10,
-    y: 10,
-    width: 190 // fit page width
-  });
+  // Use html2pdf to download PDF
+  html2pdf()
+    .set({
+      margin: 10,
+      filename: 'KT-Family-Store-Bill.pdf',
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    })
+    .from(tempDiv)
+    .save()
+    .finally(() => tempDiv.remove()); // remove temp div
 });
+
 
 function buildBillHTML() {
   let total = 0;
