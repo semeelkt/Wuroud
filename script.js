@@ -1,5 +1,18 @@
-/* ---------- PRODUCTS (localStorage) ---------- */
-const PRODUCTS_KEY = 'kt_products_v1';
+/* ---------- FIREBASE INIT ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyDJNUQ-uhMjUn8m7PsNlejrAXuAQDn9_tY",
+  authDomain: "wuroud-shop.firebaseapp.com",
+  projectId: "wuroud-shop",
+  storageBucket: "wuroud-shop.appspot.com",
+  messagingSenderId: "149417669372",
+  appId: "1:149417669372:web:75434"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const productsCollection = db.collection('products');
+
+/* ---------- PRODUCTS ---------- */
 let products = [];
 
 // DOM elements
@@ -14,31 +27,28 @@ const maxPrice       = document.getElementById('maxPrice');
 
 document.getElementById('applyFilters').addEventListener('click', filterProducts);
 
-// Load products from localStorage
-function loadProductsFromStorage() {
-  const raw = localStorage.getItem(PRODUCTS_KEY);
-  if (!raw) {
-    products = [
+/* ---------- LOAD PRODUCTS FROM FIRESTORE ---------- */
+async function loadProducts() {
+  const snapshot = await productsCollection.get();
+  if (snapshot.empty) {
+    const defaultProducts = [
       { name: "Red Sneakers",      price: 799, category: "footwear",  img: "img/red-shoes.jpg" },
       { name: "Sparkle Hair Clip", price: 120, category: "fancy",     img: "img/hair-clip.jpg" },
       { name: "RC Car",            price: 999, category: "toys",      img: "img/rc-car.jpg" },
       { name: "Notebook Pack",     price: 60,  category: "stationery",img: "img/notebook.jpg" },
       { name: "Blue Sandals",      price: 450, category: "footwear",  img: "img/sandals.jpg" }
     ];
-    saveProductsToStorage();
+    for (let p of defaultProducts) await productsCollection.add(p);
+    products = defaultProducts;
   } else {
-    products = JSON.parse(raw);
+    products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
+  displayProducts(products);
 }
 
-// Save products to localStorage
-function saveProductsToStorage() {
-  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
-}
-
-// Display products (fixed for filtered cart)
+/* ---------- DISPLAY PRODUCTS ---------- */
 function displayProducts(items) {
-  grid.innerHTML = items.map((p) => `
+  grid.innerHTML = items.map(p => `
     <div class="product">
       <img src="${p.img || 'img/placeholder.png'}" alt="${p.name}">
       <h3>${p.name}</h3>
@@ -48,7 +58,7 @@ function displayProducts(items) {
     </div>`).join('');
 }
 
-// Filter products
+/* ---------- FILTER PRODUCTS ---------- */
 function filterProducts() {
   const cat = categoryFilter.value;
   const min = parseInt(minPrice.value) || 0;
@@ -60,47 +70,31 @@ function filterProducts() {
   displayProducts(filtered);
 }
 
-// Add product
-document.getElementById('addProductBtn').addEventListener('click', () => {
+/* ---------- ADD PRODUCT ---------- */
+document.getElementById('addProductBtn').addEventListener('click', async () => {
   const name = pName.value.trim();
   const price = parseInt(pPrice.value);
   if (!name || isNaN(price)) return alert('Enter valid name & price');
 
-  products.push({
-    name,
-    price,
-    category: pCategory.value,
-    img: pImg.value.trim()
-  });
-  saveProductsToStorage();
+  const newProduct = { name, price, category: pCategory.value, img: pImg.value.trim() };
+  const docRef = await productsCollection.add(newProduct);
+  products.push({ id: docRef.id, ...newProduct });
+
   pName.value = pPrice.value = pImg.value = '';
   displayProducts(products);
 });
 
-// Remove product by name
-function removeProductByName(name) {
-  const idx = products.findIndex(p => p.name === name);
-  if (idx !== -1 && confirm('Remove this product?')) {
-    products.splice(idx, 1);
-    saveProductsToStorage();
-    displayProducts(products);
-  }
+/* ---------- REMOVE PRODUCT ---------- */
+async function removeProductByName(name) {
+  const product = products.find(p => p.name === name);
+  if (!product || !confirm('Remove this product?')) return;
+  if (product.id) await productsCollection.doc(product.id).delete();
+  products = products.filter(p => p.name !== name);
+  displayProducts(products);
 }
 
-// Add to cart by object (fix filtered mismatch)
+/* ---------- CART ---------- */
 let cart = [];
-function addToCartObj(product) {
-  cart.push(product);
-  updateCart();
-}
-
-// Remove from cart
-function removeFromCart(i) {
-  cart.splice(i, 1);
-  updateCart();
-}
-
-// Update cart display
 const cartList       = document.getElementById('cartList');
 const cartTotal      = document.getElementById('cartTotal');
 const customerNumber = document.getElementById('customerNumber');
@@ -108,6 +102,16 @@ const generateBillBtn = document.getElementById('generateBillBtn');
 const sendWhatsAppBtn = document.getElementById('sendWhatsAppBtn');
 const clearCartBtn    = document.getElementById('clearCartBtn');
 const downloadPdfBtn  = document.getElementById('downloadPdfBtn');
+
+function addToCartObj(product) {
+  cart.push(product);
+  updateCart();
+}
+
+function removeFromCart(i) {
+  cart.splice(i, 1);
+  updateCart();
+}
 
 function updateCart() {
   let total = 0;
@@ -120,6 +124,7 @@ function updateCart() {
   cartTotal.textContent = cart.length ? `Total: ₹${total}` : 'No items selected.';
 }
 
+/* ---------- CART BUTTONS ---------- */
 clearCartBtn.addEventListener('click', () => {
   if (cart.length && confirm('Clear current selection?')) {
     cart = [];
@@ -127,7 +132,6 @@ clearCartBtn.addEventListener('click', () => {
   }
 });
 
-// Print-friendly bill
 generateBillBtn.addEventListener('click', () => {
   if (!cart.length) return alert('No items in bill');
   const w = window.open('', '_blank');
@@ -135,7 +139,6 @@ generateBillBtn.addEventListener('click', () => {
   w.document.close();
 });
 
-// WhatsApp send
 sendWhatsAppBtn.addEventListener('click', () => {
   if (!cart.length) return alert('No items in bill');
   const num = customerNumber.value.trim();
@@ -150,7 +153,6 @@ sendWhatsAppBtn.addEventListener('click', () => {
   window.open(`https://wa.me/${num}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
 });
 
-// Download as PDF
 downloadPdfBtn.addEventListener('click', () => {
   if (!cart.length) return alert('No items in bill');
 
@@ -220,10 +222,9 @@ function buildBillHTML() {
 }
 
 /* ---------- INIT ---------- */
-loadProductsFromStorage();
-displayProducts(products);
+loadProducts();
 
-/* Expose globals for inline onclicks */
+/* ---------- Expose globals for inline onclicks ---------- */
 window.addToCartObj = addToCartObj;
 window.removeFromCart = removeFromCart;
 window.filterProducts = filterProducts;
