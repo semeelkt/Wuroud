@@ -11,7 +11,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyDJNUQ-uhMjUn8m7PsNlejrAXuAQDn9_tY",
       authDomain: "wuroud-shop.firebaseapp.com",
@@ -21,11 +20,10 @@
       appId: "1:149417669372:web:75434c993251ff7b1c9d79"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Expose Firestore for script.js
+    // Expose Firebase to main script
     window.db = db;
     window.firebaseFuncs = { addDoc, getDocs, deleteDoc, doc, collection };
   </script>
@@ -35,15 +33,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
-
-  <!-- MAIN APP -->
   <div id="app">
     <header>
       <h1>Wuroud (Admin)</h1>
       <p>Footwear • Fancy • Toys • Stationery</p>
     </header>
 
-    <!-- Admin Controls -->
     <section class="adminControls">
       <form id="addProductForm" class="card">
         <h3>Add New Product</h3>
@@ -59,7 +54,6 @@
         <button id="addProductBtn" type="button">Add Product</button>
       </form>
 
-      <!-- Filters -->
       <div class="filters">
         <input type="text" id="searchInput" placeholder="Search product name..." />
         <select id="categoryFilter">
@@ -75,10 +69,8 @@
       </div>
     </section>
 
-    <!-- Products Grid -->
     <main id="productGrid" class="grid"></main>
 
-    <!-- Cart / Bill -->
     <aside id="cartArea" class="cart">
       <h2>Selected Items</h2>
       <ul id="cartList"></ul>
@@ -95,7 +87,6 @@
     </footer>
   </div>
 
-  <!-- Script -->
   <script type="module" src="script.js"></script>
 </body>
 </html>
