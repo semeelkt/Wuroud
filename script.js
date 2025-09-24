@@ -59,6 +59,66 @@ function filterProducts() {
   );
   displayProducts(filtered);
 }
+function displayProducts(items) {
+  grid.innerHTML = items.map((p) => `
+    <div class="product">
+      <img src="${p.img || 'img/placeholder.png'}" alt="${p.name}">
+      <h3>${p.name}</h3>
+      <p>₹${p.price}</p>
+      <button onclick="addToCartObj(${JSON.stringify(p).replace(/"/g, '&quot;')})">Add to Bill</button>
+      <button onclick="removeProductByName('${p.name}') " class="remove-btn">Remove</button>
+    </div>`).join('');
+}
+
+// Add to cart by object
+function addToCartObj(product) {
+  cart.push(product);
+  updateCart();
+}
+
+// Remove product by name
+function removeProductByName(name) {
+  const idx = products.findIndex(p => p.name === name);
+  if (idx !== -1 && confirm('Remove this product?')) {
+    products.splice(idx, 1);
+    saveProductsToStorage();
+    displayProducts(products);
+  }
+}
+
+// Expose global functions for onclick
+window.addToCartObj = addToCartObj;
+window.removeProductByName = removeProductByName;
+function displayProducts(items) {
+  grid.innerHTML = items.map((p) => `
+    <div class="product">
+      <img src="${p.img || 'img/placeholder.png'}" alt="${p.name}">
+      <h3>${p.name}</h3>
+      <p>₹${p.price}</p>
+      <button onclick="addToCartObj(${JSON.stringify(p).replace(/"/g, '&quot;')})">Add to Bill</button>
+      <button onclick="removeProductByName('${p.name}') " class="remove-btn">Remove</button>
+    </div>`).join('');
+}
+
+// Add to cart by object
+function addToCartObj(product) {
+  cart.push(product);
+  updateCart();
+}
+
+// Remove product by name
+function removeProductByName(name) {
+  const idx = products.findIndex(p => p.name === name);
+  if (idx !== -1 && confirm('Remove this product?')) {
+    products.splice(idx, 1);
+    saveProductsToStorage();
+    displayProducts(products);
+  }
+}
+
+// Expose global functions for onclick
+window.addToCartObj = addToCartObj;
+window.removeProductByName = removeProductByName;
 
 // Add product
 document.getElementById('addProductBtn').addEventListener('click', () => {
