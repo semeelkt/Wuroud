@@ -1,8 +1,93 @@
-/* ---------- PRODUCTS ---------- */
+/* ---------- AUTH (password gate) ---------- */
+
+// Keys
+const AUTH_KEY   = 'kt_admin_pw';    
+const LOGGED_KEY = 'kt_logged_in';   
+
+// DOM elements
+const overlay       = document.getElementById('authOverlay');
+const setPassDiv    = document.getElementById('setPassDiv');
+const loginDiv      = document.getElementById('loginDiv');
+const authTitle     = document.getElementById('authTitle');
+const authMsg       = document.getElementById('authMsg');
+const newPassword   = document.getElementById('newPassword');
+const newPassConf   = document.getElementById('newPasswordConfirm');
+const setPasswordBtn= document.getElementById('setPasswordBtn');
+const passwordInput = document.getElementById('passwordInput');
+const loginBtn      = document.getElementById('loginBtn');
+const app           = document.getElementById('app');
+const logoutBtn     = document.getElementById('logoutBtn');
+
+// Helpers
+function buf2hex(buffer) {
+  return Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+async function hashString(str) {
+  const data = new TextEncoder().encode(str);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return buf2hex(hash);
+}
+
+// Prepare login or set-password UI
+function prepareAuthUI() {
+  const stored = localStorage.getItem(AUTH_KEY);
+  if (!stored) {
+    authTitle.textContent = 'Set Admin Password';
+    setPassDiv.classList.remove('hidden');
+    loginDiv.classList.add('hidden');
+  } else {
+    authTitle.textContent = 'Admin Login';
+    setPassDiv.classList.add('hidden');
+    loginDiv.classList.remove('hidden');
+  }
+}
+
+// Set password
+setPasswordBtn.addEventListener('click', async () => {
+  const p1 = newPassword.value.trim();
+  const p2 = newPassConf.value.trim();
+  authMsg.textContent = '';
+  if (!p1 || !p2) return (authMsg.textContent = 'Please fill both fields.');
+  if (p1 !== p2) return (authMsg.textContent = 'Passwords do not match.');
+  const hash = await hashString(p1);
+  localStorage.setItem(AUTH_KEY, hash);
+  newPassword.value = newPassConf.value = '';
+  authMsg.textContent = 'Password saved. Please login.';
+  prepareAuthUI();
+});
+
+// Login
+loginBtn.addEventListener('click', async () => {
+  const p = passwordInput.value.trim();
+  if (!p) return (authMsg.textContent = 'Enter password.');
+  const hash = await hashString(p);
+  if (hash === localStorage.getItem(AUTH_KEY)) {
+    sessionStorage.setItem(LOGGED_KEY, '1');
+    openApp();
+  } else authMsg.textContent = 'Wrong password.';
+});
+
+// Logout
+logoutBtn.addEventListener('click', () => {
+  sessionStorage.removeItem(LOGGED_KEY);
+  location.reload();
+});
+
+// Open the actual app
+function openApp() {
+  overlay.classList.add('hidden');
+  app.classList.remove('hidden');
+  loadProductsFromDB();
+  updateCart();
+}
+
+/* ---------- FIREBASE CONFIG ---------- */
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-// Firebase config — replace with your keys
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_AUTH_DOMAIN",
@@ -15,6 +100,7 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 
+/* ---------- PRODUCTS ---------- */
 let products = [];
 const grid           = document.getElementById('productGrid');
 const categoryFilter = document.getElementById('categoryFilter');
@@ -207,10 +293,9 @@ function buildBillHTML() {
     </body></html>`;
 }
 
-/* ---------- INIT ---------- */
-// Directly open app without login
-app.classList.remove('hidden');
-loadProductsFromDB();
+/* ---------- Init ---------- */
+prepareAuthUI();
+if (sessionStorage.getItem(LOGGED_KEY) === '1') openApp();
 
 /* Expose global funcs for inline onclicks */
 window.addToCart = addToCart;
