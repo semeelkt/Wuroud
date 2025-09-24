@@ -92,11 +92,7 @@ let products = [
   { name: "RC Car",           price: 999, category: "toys",     img: "img/rc-car.jpg" },
   { name: "Notebook Pack",    price: 60,  category: "stationery",img: "img/notebook.jpg" },
   { name: "Blue Sandals",     price: 450, category: "footwear",  img: "img/sandals.jpg" }
-  { name: "chappel",    price: 499, category: "footwear",  img: "img/red-shoes.jpg" },
-  { name: "Sparkle Hair Clip", price: 120, category: "fancy",   img: "img/hair-clip.jpg" },
-  { name: "RC Car",           price: 999, category: "toys",     img: "img/rc-car.jpg" },
-  { name: "Notebook Pack",    price: 60,  category: "stationery",img: "img/notebook.jpg" },
-  { name: "Blue Sandals",     price: 450, category: "footwear",  img: "img/sandals.jpg" }
+  
 ];
 
 function saveProductsToStorage() {
