@@ -44,36 +44,39 @@
       <p>Footwear • Fancy • Toys • Stationery</p>
     </header>
 
-    <!-- Admin Controls -->
-    <section class="adminControls">
-      <form id="addProductForm" class="card">
-        <h3>Add New Product</h3>
-        <input id="pName" placeholder="Product name" required />
-        <input id="pPrice" type="number" placeholder="Price (₹)" required />
-        <select id="pCategory">
-          <option value="footwear">Footwear</option>
-          <option value="fancy">Fancy</option>
-          <option value="toys">Toys</option>
-          <option value="stationery">Stationery</option>
-        </select>
-        <input id="pImg" placeholder="Image path (e.g. img/foo.jpg)" />
-        <button id="addProductBtn" type="button">Add Product</button>
-      </form>
+   <!-- Admin Controls -->
+<section class="adminControls">
+  <form id="addProductForm" class="card">
+    <h3>Add New Product</h3>
+    <input id="pName" placeholder="Product name" required />
+    <input id="pPrice" type="number" placeholder="Price (₹)" required />
+    <select id="pCategory">
+      <option value="footwear">Footwear</option>
+      <option value="fancy">Fancy</option>
+      <option value="toys">Toys</option>
+      <option value="stationery">Stationery</option>
+    </select>
+    <input id="pImg" placeholder="Image path (e.g. img/foo.jpg)" />
+    <button id="addProductBtn" type="button">Add Product</button>
+  </form>
 
-      <div class="filters">
-        <select id="categoryFilter">
-          <option value="all">All Categories</option>
-          <option value="footwear">Footwear</option>
-          <option value="fancy">Fancy</option>
-          <option value="toys">Toys</option>
-          <option value="stationery">Stationery</option>
-        </select>
+  <div class="filters">
+    <!-- SEARCH INPUT ADDED -->
+    <input type="text" id="searchInput" placeholder="Search product name..." />
 
-        <input type="number" id="minPrice" placeholder="Min ₹" />
-        <input type="number" id="maxPrice" placeholder="Max ₹" />
-        <button id="applyFilters">Filter</button>
-      </div>
-    </section>
+    <select id="categoryFilter">
+      <option value="all">All Categories</option>
+      <option value="footwear">Footwear</option>
+      <option value="fancy">Fancy</option>
+      <option value="toys">Toys</option>
+      <option value="stationery">Stationery</option>
+    </select>
+
+    <input type="number" id="minPrice" placeholder="Min ₹" />
+    <input type="number" id="maxPrice" placeholder="Max ₹" />
+    <button id="applyFilters">Filter</button>
+  </div>
+</section>
 
     <!-- Products Grid -->
     <main id="productGrid" class="grid"></main>

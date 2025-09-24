@@ -130,6 +130,21 @@ function filterProducts() {
   );
   displayProducts(filtered);
 }
+function filterProducts() {
+  const cat = categoryFilter.value;
+  const min = parseInt(minPrice.value) || 0;
+  const max = parseInt(maxPrice.value) || Infinity;
+  const search = searchInput.value.trim().toLowerCase();
+
+  const filtered = products.filter(p =>
+    (cat === 'all' || p.category === cat) &&
+    p.price >= min && p.price <= max &&
+    p.name.toLowerCase().includes(search)
+  );
+
+  displayProducts(filtered);
+}
+
 
 // Admin add product
 document.getElementById('addProductBtn').addEventListener('click', () => {
