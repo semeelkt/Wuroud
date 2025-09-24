@@ -1,26 +1,3 @@
-/* ======== Firebase Setup ======== */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  getDocs,
-  addDoc,
-  deleteDoc,
-  doc
-} from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDJNUQ-uhMjUn8m7PsNlejrAXuAQDn9_tY",
-  authDomain: "wuroud-shop.firebaseapp.com",
-  projectId: "wuroud-shop",
-  storageBucket: "wuroud-shop.firebasestorage.app",
-  messagingSenderId: "149417669372",
-  appId: "1:149417669372:web:75434c993251ff7b1c9d79"
-};
-
-const appFB = initializeApp(firebaseConfig);
-const db    = getFirestore(appFB);
-
 /* ---------- AUTH (password gate) ---------- */
 
 // Keys
@@ -28,13 +5,13 @@ const AUTH_KEY   = 'kt_admin_pw';    // localStorage: SHA-256 hash of admin pass
 const LOGGED_KEY = 'kt_logged_in';   // sessionStorage flag
 
 // DOM elements
-const overlay        = document.getElementById('authOverlay');
-const setPassDiv     = document.getElementById('setPassDiv');
-const loginDiv       = document.getElementById('loginDiv');
-const authTitle      = document.getElementById('authTitle');
-const authMsg        = document.getElementById('authMsg');
-const newPassword    = document.getElementById('newPassword');
-const newPassConf    = document.getElementById('newPasswordConfirm');
+const overlay      = document.getElementById('authOverlay');
+const setPassDiv   = document.getElementById('setPassDiv');
+const loginDiv     = document.getElementById('loginDiv');
+const authTitle    = document.getElementById('authTitle');
+const authMsg      = document.getElementById('authMsg');
+const newPassword  = document.getElementById('newPassword');
+const newPassConf  = document.getElementById('newPasswordConfirm');
 const setPasswordBtn = document.getElementById('setPasswordBtn');
 const passwordInput  = document.getElementById('passwordInput');
 const loginBtn       = document.getElementById('loginBtn');
@@ -98,8 +75,34 @@ logoutBtn.addEventListener('click', () => {
   location.reload();
 });
 
+// Open the actual app
+function openApp() {
+  overlay.classList.add('hidden');
+  app.classList.remove('hidden');
+  loadProductsFromStorage();
+  displayProducts(products);
+  updateCart();
+}
+
 /* ---------- PRODUCTS ---------- */
-let products = []; // will be loaded from Firestore
+const PRODUCTS_KEY = 'kt_products_v1';
+let products = [
+  { name: "Red Sneakers",    price: 799, category: "footwear",  img: "img/red-shoes.jpg" },
+  { name: "Sparkle Hair Clip", price: 120, category: "fancy",   img: "img/hair-clip.jpg" },
+  { name: "RC Car",           price: 999, category: "toys",     img: "img/rc-car.jpg" },
+  { name: "Notebook Pack",    price: 60,  category: "stationery",img: "img/notebook.jpg" },
+  { name: "Blue Sandals",     price: 450, category: "footwear",  img: "img/sandals.jpg" }
+];
+
+function saveProductsToStorage() {
+  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+}
+function loadProductsFromStorage() {
+  const raw = localStorage.getItem(PRODUCTS_KEY);
+  if (!raw) return saveProductsToStorage();
+  try { products = JSON.parse(raw); }
+  catch { saveProductsToStorage(); }
+}
 
 const grid           = document.getElementById('productGrid');
 const categoryFilter = document.getElementById('categoryFilter');
@@ -128,49 +131,37 @@ function filterProducts() {
   );
   displayProducts(filtered);
 }
+function filterProducts() {
+  const cat = categoryFilter.value;
+  const min = parseInt(minPrice.value) || 0;
+  const max = parseInt(maxPrice.value) || Infinity;
+  const search = searchInput.value.trim().toLowerCase();
 
-// ---- Firestore helpers ----
-async function loadProductsFromFirestore() {
-  const snapshot = await getDocs(collection(db, "products"));
-  products = snapshot.docs.map(docu => ({ id: docu.id, ...docu.data() }));
-  displayProducts(products);
+  const filtered = products.filter(p =>
+    (cat === 'all' || p.category === cat) &&
+    p.price >= min && p.price <= max &&
+    p.name.toLowerCase().includes(search)
+  );
+
+  displayProducts(filtered);
 }
 
-async function saveProductToFirestore(product) {
-  const ref = await addDoc(collection(db, "products"), product);
-  product.id = ref.id;
-}
-
-async function deleteProductFromFirestore(id) {
-  await deleteDoc(doc(db, "products", id));
-}
 
 // Admin add product
-document.getElementById('addProductBtn').addEventListener('click', async () => {
+document.getElementById('addProductBtn').addEventListener('click', () => {
   const name = pName.value.trim();
   const price = parseInt(pPrice.value);
   if (!name || isNaN(price)) return alert('Enter valid name & price');
-  const newProd = {
+  products.push({
     name,
     price,
     category: pCategory.value,
     img: pImg.value.trim()
-  };
-  await saveProductToFirestore(newProd);
-  products.push(newProd);
+  });
+  saveProductsToStorage();
   pName.value = pPrice.value = pImg.value = '';
   displayProducts(products);
 });
-
-// Remove product from products list
-async function removeProduct(index) {
-  if (confirm('Remove this product?')) {
-    const prod = products[index];
-    if (prod.id) await deleteProductFromFirestore(prod.id);
-    products.splice(index, 1);
-    displayProducts(products);
-  }
-}
 
 /* ---------- CART / BILL ---------- */
 const cartList      = document.getElementById('cartList');
@@ -179,7 +170,6 @@ const customerNumber= document.getElementById('customerNumber');
 const generateBillBtn = document.getElementById('generateBillBtn');
 const sendWhatsAppBtn = document.getElementById('sendWhatsAppBtn');
 const clearCartBtn    = document.getElementById('clearCartBtn');
-const downloadPdfBtn  = document.getElementById('downloadPdfBtn');
 
 let cart = [];
 
@@ -210,6 +200,15 @@ clearCartBtn.addEventListener('click', () => {
   }
 });
 
+// Remove product from products list
+function removeProduct(index) {
+  if (confirm('Remove this product?')) {
+    products.splice(index, 1); // Remove product from array
+    saveProductsToStorage();   // Update localStorage
+    displayProducts(products); // Refresh display
+  }
+}
+
 // Print-friendly bill
 generateBillBtn.addEventListener('click', () => {
   if (!cart.length) return alert('No items in bill');
@@ -233,11 +232,12 @@ sendWhatsAppBtn.addEventListener('click', () => {
   lines.push('----------------------', `Total: ₹${total}`);
   window.open(`https://wa.me/${num}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
 });
-
 downloadPdfBtn.addEventListener('click', () => {
   if (!cart.length) return alert('No items in bill');
 
+  // Create temporary div with only table
   const tempDiv = document.createElement('div');
+
   let total = 0;
   const rows = cart.map((it, i) => {
     total += it.price;
@@ -256,6 +256,7 @@ downloadPdfBtn.addEventListener('click', () => {
     </table>
   `;
 
+  // Minimal styles so table is visible
   const style = document.createElement('style');
   style.textContent = `
     table{width:100%;border-collapse:collapse;margin-top:10px;}
@@ -303,12 +304,6 @@ function buildBillHTML() {
 }
 
 /* ---------- Init ---------- */
-async function openApp() {
-  overlay.classList.add('hidden');
-  app.classList.remove('hidden');
-  await loadProductsFromFirestore();
-  updateCart();
-}
 prepareAuthUI();
 if (sessionStorage.getItem(LOGGED_KEY) === '1') openApp();
 
