@@ -41,6 +41,8 @@ const applyFilter = document.getElementById("applyFilter");
 const loginForm = document.getElementById("loginForm");
 const authContainer = document.getElementById("authContainer");
 const logoutBtn = document.getElementById("logoutBtn");
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
 
 // Local state
 let cart = []; // Cart items
@@ -48,8 +50,13 @@ let products = []; // Snapshot cache
 
 // Authentication functions
 document.getElementById("loginBtn").addEventListener("click", async () => {
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value.trim();
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  if (!email || !password) {
+    alert("Please enter both email and password.");
+    return;
+  }
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
@@ -57,18 +64,25 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
     loadProducts();
   } catch (error) {
     console.error("Error signing in: ", error.message);
+    alert("Error signing in: " + error.message);
   }
 });
 
 document.getElementById("signUpBtn").addEventListener("click", async () => {
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value.trim();
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  if (!email || !password) {
+    alert("Please enter both email and password.");
+    return;
+  }
 
   try {
     await createUserWithEmailAndPassword(auth, email, password);
     alert("Account created successfully");
   } catch (error) {
     console.error("Error signing up: ", error.message);
+    alert("Error signing up: " + error.message);
   }
 });
 
@@ -82,7 +96,7 @@ logoutBtn.addEventListener("click", async () => {
 function showAuthUI(isLoggedOut) {
   loginForm.style.display = isLoggedOut ? "block" : "none";
   logoutBtn.style.display = isLoggedOut ? "none" : "block";
-  authContainer.style.display = isLoggedOut ? "block" : "none";
+  authContainer.style.display = isLoggedOut ? "none" : "block";
 }
 
 // Add product to Firestore under logged-in user's collection
@@ -292,13 +306,6 @@ function shareOnWhatsApp() {
 
   window.open(url, '_blank');
 }
-
-document.getElementById("clearBill").addEventListener("click", () => {
-  if (confirm("Clear cart?")) {
-    cart = [];
-    renderCart();
-  }
-});
 
 // Helper function to escape HTML characters
 function escapeHtml(str) {
