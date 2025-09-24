@@ -1,7 +1,9 @@
 /* ---------- AUTH (password gate) ---------- */
-const AUTH_KEY   = 'kt_admin_pw';
-const LOGGED_KEY = 'kt_logged_in';
+// Keys
+const AUTH_KEY   = 'kt_admin_pw';    // localStorage: SHA-256 hash of admin password
+const LOGGED_KEY = 'kt_logged_in';   // sessionStorage flag
 
+// DOM elements
 const overlay      = document.getElementById('authOverlay');
 const setPassDiv   = document.getElementById('setPassDiv');
 const loginDiv     = document.getElementById('loginDiv');
@@ -15,6 +17,7 @@ const loginBtn       = document.getElementById('loginBtn');
 const app            = document.getElementById('app');
 const logoutBtn      = document.getElementById('logoutBtn');
 
+// Helpers
 function buf2hex(buffer) {
   return Array.from(new Uint8Array(buffer))
     .map(b => b.toString(16).padStart(2, '0'))
@@ -26,6 +29,7 @@ async function hashString(str) {
   return buf2hex(hash);
 }
 
+// Prepare login or set-password UI
 function prepareAuthUI() {
   const stored = localStorage.getItem(AUTH_KEY);
   if (!stored) {
@@ -39,6 +43,7 @@ function prepareAuthUI() {
   }
 }
 
+// Set password
 setPasswordBtn.addEventListener('click', async () => {
   const p1 = newPassword.value.trim();
   const p2 = newPassConf.value.trim();
@@ -52,6 +57,7 @@ setPasswordBtn.addEventListener('click', async () => {
   prepareAuthUI();
 });
 
+// Login
 loginBtn.addEventListener('click', async () => {
   const p = passwordInput.value.trim();
   if (!p) return (authMsg.textContent = 'Enter password.');
@@ -62,11 +68,13 @@ loginBtn.addEventListener('click', async () => {
   } else authMsg.textContent = 'Wrong password.';
 });
 
+// Logout
 logoutBtn.addEventListener('click', () => {
   sessionStorage.removeItem(LOGGED_KEY);
   location.reload();
 });
 
+// Open the actual app
 function openApp() {
   overlay.classList.add('hidden');
   app.classList.remove('hidden');
@@ -85,7 +93,9 @@ let products = [
   { name: "Blue Sandals",     price: 450, category: "footwear",  img: "img/sandals.jpg" }
 ];
 
-function saveProductsToStorage() { localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products)); }
+function saveProductsToStorage() {
+  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+}
 function loadProductsFromStorage() {
   const raw = localStorage.getItem(PRODUCTS_KEY);
   if (!raw) return saveProductsToStorage();
@@ -121,11 +131,17 @@ function filterProducts() {
   displayProducts(filtered);
 }
 
+// Admin add product
 document.getElementById('addProductBtn').addEventListener('click', () => {
   const name = pName.value.trim();
   const price = parseInt(pPrice.value);
   if (!name || isNaN(price)) return alert('Enter valid name & price');
-  products.push({ name, price, category: pCategory.value, img: pImg.value.trim() });
+  products.push({
+    name,
+    price,
+    category: pCategory.value,
+    img: pImg.value.trim()
+  });
   saveProductsToStorage();
   pName.value = pPrice.value = pImg.value = '';
   displayProducts(products);
@@ -141,67 +157,96 @@ const clearCartBtn    = document.getElementById('clearCartBtn');
 
 let cart = [];
 
-function addToCart(i) { if (!products[i]) return; cart.push(products[i]); updateCart(); }
-function removeFromCart(i) { cart.splice(i, 1); updateCart(); }
+function addToCart(i) {
+  if (!products[i]) return;
+  cart.push(products[i]);
+  updateCart();
+}
+function removeFromCart(i) {
+  cart.splice(i, 1);
+  updateCart();
+}
 function updateCart() {
   let total = 0;
   cartList.innerHTML = cart.map((it, idx) => {
     total += it.price;
-    return `<li>${it.name} - ₹${it.price} <button class="remove-btn" onclick="removeFromCart(${idx})">❌</button></li>`;
+    return `<li>${it.name} - ₹${it.price}
+          <button class="remove-btn" onclick="removeFromCart(${idx})">❌</button>
+        </li>`;
   }).join('');
   cartTotal.textContent = cart.length ? `Total: ₹${total}` : 'No items selected.';
 }
 
 clearCartBtn.addEventListener('click', () => {
-  if (cart.length && confirm('Clear current selection?')) { cart = []; updateCart(); }
+  if (cart.length && confirm('Clear current selection?')) {
+    cart = [];
+    updateCart();
+  }
 });
 
+// Remove product from products list
 function removeProduct(index) {
   if (confirm('Remove this product?')) {
-    products.splice(index, 1);
-    saveProductsToStorage();
-    displayProducts(products);
+    products.splice(index, 1); // Remove product from array
+    saveProductsToStorage();   // Update localStorage
+    displayProducts(products); // Refresh display
   }
 }
 
-/* ---------- PDF BILL WITH html2pdf.js ---------- */
+// Print-friendly bill
 generateBillBtn.addEventListener('click', () => {
   if (!cart.length) return alert('No items in bill');
-  const billEl = document.createElement('div');
-  billEl.innerHTML = buildBillHTML(true); // true = return inner content
-  html2pdf().from(billEl).set({ margin:0.5, filename:'KT_Family_Bill.pdf', html2canvas:{scale:2} }).save();
+  const w = window.open('', '_blank');
+  w.document.write(buildBillHTML());
+  w.document.close();
+  w.print();
 });
 
+// WhatsApp send
 sendWhatsAppBtn.addEventListener('click', () => {
   if (!cart.length) return alert('No items in bill');
   const num = customerNumber.value.trim();
   if (!num) return alert('Enter customer mobile (e.g. 91XXXXXXXXXX)');
   let total = 0;
-  const lines = cart.map((it, i) => { total += it.price; return `${i+1}. ${it.name} - ₹${it.price}`; });
-  lines.unshift('KT Family Store - Bill','----------------------');
-  lines.push('----------------------',`Total: ₹${total}`);
+  const lines = cart.map((it, i) => {
+    total += it.price;
+    return `${i + 1}. ${it.name} - ₹${it.price}`;
+  });
+  lines.unshift('KT Family Store - Bill', '----------------------');
+  lines.push('----------------------', `Total: ₹${total}`);
   window.open(`https://wa.me/${num}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
 });
 
-function buildBillHTML(inner=false) {
-  let total=0;
-  const rows = cart.map((it,i)=>{ total+=it.price; return `<tr><td>${i+1}</td><td>${it.name}</td><td>₹${it.price}</td></tr>`; }).join('');
-  const content = `
-    <h1>KT Family Store</h1>
-    <p>Bill generated: ${new Date().toLocaleString()}</p>
-    <table style="width:100%;border-collapse:collapse;margin-top:10px;">
-      <thead><tr><th>#</th><th>Item</th><th>Price</th></tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot><tr><td colspan="2"><strong>Total</strong></td><td><strong>₹${total}</strong></td></tr></tfoot>
-    </table>`;
-  if(inner) return content;
-  return `<html><head><title>Bill</title></head><body>${content}</body></html>`;
+function buildBillHTML() {
+  let total = 0;
+  const rows = cart.map((it, i) => {
+    total += it.price;
+    return `<tr><td>${i + 1}</td><td>${it.name}</td><td>₹${it.price}</td></tr>`;
+  }).join('');
+  return `
+    <html><head><title>Bill</title>
+    <style>
+      body{font-family:Arial,sans-serif;padding:20px;}
+      table{width:100%;border-collapse:collapse;margin-top:10px;}
+      td,th{border:1px solid #ddd;padding:8px;}
+    </style></head>
+    <body>
+      <h1>KT Family Store</h1>
+      <p>Bill generated: ${new Date().toLocaleString()}</p>
+      <table>
+        <thead><tr><th>#</th><th>Item</th><th>Price</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td colspan="2"><strong>Total</strong></td>
+        <td><strong>₹${total}</strong></td></tr></tfoot>
+      </table>
+    </body></html>`;
 }
 
 /* ---------- Init ---------- */
 prepareAuthUI();
-if(sessionStorage.getItem(LOGGED_KEY)==='1') openApp();
+if (sessionStorage.getItem(LOGGED_KEY) === '1') openApp();
 
+/* Expose global funcs for inline onclicks */
 window.addToCart = addToCart;
 window.removeFromCart = removeFromCart;
 window.filterProducts = filterProducts;
