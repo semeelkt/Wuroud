@@ -135,7 +135,6 @@ generateBillBtn.addEventListener('click', () => {
   w.document.close();
 });
 
-
 // WhatsApp send
 sendWhatsAppBtn.addEventListener('click', () => {
   if (!cart.length) return alert('No items in bill');
