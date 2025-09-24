@@ -1,129 +1,50 @@
-/* ---------- AUTH (password gate) ---------- */
-
-// Keys
-const AUTH_KEY   = 'kt_admin_pw';    
-const LOGGED_KEY = 'kt_logged_in';   
+/* ---------- PRODUCTS (localStorage) ---------- */
+const PRODUCTS_KEY = 'kt_products_v1';
+let products = [];
 
 // DOM elements
-const overlay       = document.getElementById('authOverlay');
-const setPassDiv    = document.getElementById('setPassDiv');
-const loginDiv      = document.getElementById('loginDiv');
-const authTitle     = document.getElementById('authTitle');
-const authMsg       = document.getElementById('authMsg');
-const newPassword   = document.getElementById('newPassword');
-const newPassConf   = document.getElementById('newPasswordConfirm');
-const setPasswordBtn= document.getElementById('setPasswordBtn');
-const passwordInput = document.getElementById('passwordInput');
-const loginBtn      = document.getElementById('loginBtn');
-const app           = document.getElementById('app');
-const logoutBtn     = document.getElementById('logoutBtn');
-
-// Helpers
-function buf2hex(buffer) {
-  return Array.from(new Uint8Array(buffer))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-async function hashString(str) {
-  const data = new TextEncoder().encode(str);
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return buf2hex(hash);
-}
-
-// Prepare login or set-password UI
-function prepareAuthUI() {
-  const stored = localStorage.getItem(AUTH_KEY);
-  if (!stored) {
-    authTitle.textContent = 'Set Admin Password';
-    setPassDiv.classList.remove('hidden');
-    loginDiv.classList.add('hidden');
-  } else {
-    authTitle.textContent = 'Admin Login';
-    setPassDiv.classList.add('hidden');
-    loginDiv.classList.remove('hidden');
-  }
-}
-
-// Set password
-setPasswordBtn.addEventListener('click', async () => {
-  const p1 = newPassword.value.trim();
-  const p2 = newPassConf.value.trim();
-  authMsg.textContent = '';
-  if (!p1 || !p2) return (authMsg.textContent = 'Please fill both fields.');
-  if (p1 !== p2) return (authMsg.textContent = 'Passwords do not match.');
-  const hash = await hashString(p1);
-  localStorage.setItem(AUTH_KEY, hash);
-  newPassword.value = newPassConf.value = '';
-  authMsg.textContent = 'Password saved. Please login.';
-  prepareAuthUI();
-});
-
-// Login
-loginBtn.addEventListener('click', async () => {
-  const p = passwordInput.value.trim();
-  if (!p) return (authMsg.textContent = 'Enter password.');
-  const hash = await hashString(p);
-  if (hash === localStorage.getItem(AUTH_KEY)) {
-    sessionStorage.setItem(LOGGED_KEY, '1');
-    openApp();
-  } else authMsg.textContent = 'Wrong password.';
-});
-
-// Logout
-logoutBtn.addEventListener('click', () => {
-  sessionStorage.removeItem(LOGGED_KEY);
-  location.reload();
-});
-
-// Open the actual app
-function openApp() {
-  overlay.classList.add('hidden');
-  app.classList.remove('hidden');
-  loadProductsFromDB();
-  updateCart();
-}
-
-/* ---------- FIREBASE CONFIG ---------- */
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
-
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
-
-/* ---------- PRODUCTS ---------- */
-let products = [];
 const grid           = document.getElementById('productGrid');
+const pName          = document.getElementById('pName');
+const pPrice         = document.getElementById('pPrice');
+const pCategory      = document.getElementById('pCategory');
+const pImg           = document.getElementById('pImg');
 const categoryFilter = document.getElementById('categoryFilter');
 const minPrice       = document.getElementById('minPrice');
 const maxPrice       = document.getElementById('maxPrice');
+
 document.getElementById('applyFilters').addEventListener('click', filterProducts);
 
-// Load products from Firestore
-async function loadProductsFromDB() {
-  const snapshot = await getDocs(collection(db, "products"));
-  products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  displayProducts(products);
+// Load products from localStorage
+function loadProductsFromStorage() {
+  const raw = localStorage.getItem(PRODUCTS_KEY);
+  if (!raw) {
+    products = [
+      { name: "Red Sneakers",      price: 799, category: "footwear",  img: "img/red-shoes.jpg" },
+      { name: "Sparkle Hair Clip", price: 120, category: "fancy",     img: "img/hair-clip.jpg" },
+      { name: "RC Car",            price: 999, category: "toys",      img: "img/rc-car.jpg" },
+      { name: "Notebook Pack",     price: 60,  category: "stationery",img: "img/notebook.jpg" },
+      { name: "Blue Sandals",      price: 450, category: "footwear",  img: "img/sandals.jpg" }
+    ];
+    saveProductsToStorage();
+  } else {
+    products = JSON.parse(raw);
+  }
 }
 
-// Display products
+// Save products to localStorage
+function saveProductsToStorage() {
+  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+}
+
+// Display products (fixed for filtered cart)
 function displayProducts(items) {
-  grid.innerHTML = items.map((p, i) => `
+  grid.innerHTML = items.map((p) => `
     <div class="product">
       <img src="${p.img || 'img/placeholder.png'}" alt="${p.name}">
       <h3>${p.name}</h3>
       <p>₹${p.price}</p>
-      <button onclick="addToCart(${i})">Add to Bill</button>
-      <button onclick="removeProduct('${p.id}')" class="remove-btn">Remove</button>
+      <button onclick="addToCartObj(${JSON.stringify(p).replace(/"/g, '&quot;')})">Add to Bill</button>
+      <button onclick="removeProductByName('${p.name}')" class="remove-btn">Remove</button>
     </div>`).join('');
 }
 
@@ -140,56 +61,61 @@ function filterProducts() {
 }
 
 // Add product
-document.getElementById('addProductBtn').addEventListener('click', async () => {
+document.getElementById('addProductBtn').addEventListener('click', () => {
   const name = pName.value.trim();
   const price = parseInt(pPrice.value);
   if (!name || isNaN(price)) return alert('Enter valid name & price');
 
-  const newProd = {
+  products.push({
     name,
     price,
     category: pCategory.value,
     img: pImg.value.trim()
-  };
-  await addDoc(collection(db, "products"), newProd);
+  });
+  saveProductsToStorage();
   pName.value = pPrice.value = pImg.value = '';
-  loadProductsFromDB();
+  displayProducts(products);
 });
 
-// Remove product
-async function removeProduct(id) {
-  if (!confirm('Remove this product?')) return;
-  await deleteDoc(doc(db, "products", id));
-  loadProductsFromDB();
+// Remove product by name
+function removeProductByName(name) {
+  const idx = products.findIndex(p => p.name === name);
+  if (idx !== -1 && confirm('Remove this product?')) {
+    products.splice(idx, 1);
+    saveProductsToStorage();
+    displayProducts(products);
+  }
 }
 
-/* ---------- CART / BILL ---------- */
-const cartList        = document.getElementById('cartList');
-const cartTotal       = document.getElementById('cartTotal');
-const customerNumber  = document.getElementById('customerNumber');
+// Add to cart by object (fix filtered mismatch)
+let cart = [];
+function addToCartObj(product) {
+  cart.push(product);
+  updateCart();
+}
+
+// Remove from cart
+function removeFromCart(i) {
+  cart.splice(i, 1);
+  updateCart();
+}
+
+// Update cart display
+const cartList       = document.getElementById('cartList');
+const cartTotal      = document.getElementById('cartTotal');
+const customerNumber = document.getElementById('customerNumber');
 const generateBillBtn = document.getElementById('generateBillBtn');
 const sendWhatsAppBtn = document.getElementById('sendWhatsAppBtn');
 const clearCartBtn    = document.getElementById('clearCartBtn');
 const downloadPdfBtn  = document.getElementById('downloadPdfBtn');
 
-let cart = [];
-
-function addToCart(i) {
-  if (!products[i]) return;
-  cart.push(products[i]);
-  updateCart();
-}
-function removeFromCart(i) {
-  cart.splice(i, 1);
-  updateCart();
-}
 function updateCart() {
   let total = 0;
   cartList.innerHTML = cart.map((it, idx) => {
     total += it.price;
     return `<li>${it.name} - ₹${it.price}
-          <button class="remove-btn" onclick="removeFromCart(${idx})">❌</button>
-        </li>`;
+      <button class="remove-btn" onclick="removeFromCart(${idx})">❌</button>
+    </li>`;
   }).join('');
   cartTotal.textContent = cart.length ? `Total: ₹${total}` : 'No items selected.';
 }
@@ -293,12 +219,12 @@ function buildBillHTML() {
     </body></html>`;
 }
 
-/* ---------- Init ---------- */
-prepareAuthUI();
-if (sessionStorage.getItem(LOGGED_KEY) === '1') openApp();
+/* ---------- INIT ---------- */
+loadProductsFromStorage();
+displayProducts(products);
 
-/* Expose global funcs for inline onclicks */
-window.addToCart = addToCart;
+/* Expose globals for inline onclicks */
+window.addToCartObj = addToCartObj;
 window.removeFromCart = removeFromCart;
 window.filterProducts = filterProducts;
-window.removeProduct = removeProduct;
+window.removeProductByName = removeProductByName;
