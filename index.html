@@ -5,6 +5,29 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Wuroud - Admin</title>
   <link rel="stylesheet" href="style.css" />
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+  // Your Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyDJNUQ-uhMjUn8m7PsNlejrAXuAQDn9_tY",
+    authDomain: "wuroud-shop.firebaseapp.com",
+    projectId: "wuroud-shop",
+    storageBucket: "wuroud-shop.firebasestorage.app",
+    messagingSenderId: "149417669372",
+    appId: "1:149417669372:web:75434c993251ff7b1c9d79"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Make Firestore functions accessible in script.js
+  window.db = db;
+  window.firebaseFuncs = { addDoc, getDocs, deleteDoc, doc, collection };
+</script>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
