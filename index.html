@@ -5,40 +5,45 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Wuroud - Admin</title>
   <link rel="stylesheet" href="style.css" />
-
-  <!-- Firebase -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDJNUQ-uhMjUn8m7PsNlejrAXuAQDn9_tY",
-      authDomain: "wuroud-shop.firebaseapp.com",
-      projectId: "wuroud-shop",
-      storageBucket: "wuroud-shop.firebasestorage.app",
-      messagingSenderId: "149417669372",
-      appId: "1:149417669372:web:75434c993251ff7b1c9d79"
-    };
+  // Your Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyDJNUQ-uhMjUn8m7PsNlejrAXuAQDn9_tY",
+    authDomain: "wuroud-shop.firebaseapp.com",
+    projectId: "wuroud-shop",
+    storageBucket: "wuroud-shop.firebasestorage.app",
+    messagingSenderId: "149417669372",
+    appId: "1:149417669372:web:75434c993251ff7b1c9d79"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    // Expose Firebase to main script
-    window.db = db;
-    window.firebaseFuncs = { addDoc, getDocs, deleteDoc, doc, collection };
-  </script>
+  // Make Firestore functions accessible in script.js
+  window.db = db;
+  window.firebaseFuncs = { addDoc, getDocs, deleteDoc, doc, collection };
+</script>
 
-  <!-- PDF libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
+
+  <!-- MAIN APP -->
   <div id="app">
     <header>
       <h1>Wuroud (Admin)</h1>
+      <div class="headerRight">
+        <button id="logoutBtn" class="btn small" style="display:none;">Logout</button>
+      </div>
       <p>Footwear • Fancy • Toys • Stationery</p>
     </header>
 
+    <!-- Admin Controls -->
     <section class="adminControls">
       <form id="addProductForm" class="card">
         <h3>Add New Product</h3>
@@ -65,18 +70,20 @@
         </select>
         <input type="number" id="minPrice" placeholder="Min ₹" />
         <input type="number" id="maxPrice" placeholder="Max ₹" />
-        <button id="applyFilters" type="button">Filter</button>
+        <button id="applyFilters">Filter</button>
       </div>
     </section>
 
+    <!-- Products Grid -->
     <main id="productGrid" class="grid"></main>
 
+    <!-- Cart / Bill -->
     <aside id="cartArea" class="cart">
       <h2>Selected Items</h2>
       <ul id="cartList"></ul>
       <p id="cartTotal"></p>
       <input id="customerNumber" placeholder="Customer mobile (e.g. 9198XXXXXXXX)" />
-      <button id="generateBillBtn">Generate Bill (Print)</button>
+      <button id="generateBillBtn">Generate Bill (download PDF)</button>
       <button id="sendWhatsAppBtn">Send via WhatsApp</button>
       <button id="downloadPdfBtn">Download PDF</button>
       <button id="clearCartBtn" class="danger">Clear Cart</button>
