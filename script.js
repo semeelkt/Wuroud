@@ -1,39 +1,32 @@
-/* ---------- PRODUCTS (localStorage) ---------- */
-const PRODUCTS_KEY = 'kt_products_v1';
-let products = [];
+/* ---------- PRODUCTS ---------- */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-// DOM elements
+// Firebase config — replace with your keys
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_BUCKET",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+
+let products = [];
 const grid           = document.getElementById('productGrid');
-const pName          = document.getElementById('pName');
-const pPrice         = document.getElementById('pPrice');
-const pCategory      = document.getElementById('pCategory');
-const pImg           = document.getElementById('pImg');
 const categoryFilter = document.getElementById('categoryFilter');
 const minPrice       = document.getElementById('minPrice');
 const maxPrice       = document.getElementById('maxPrice');
-
 document.getElementById('applyFilters').addEventListener('click', filterProducts);
 
-// Load products from localStorage
-function loadProductsFromStorage() {
-  const raw = localStorage.getItem(PRODUCTS_KEY);
-  if (!raw) {
-    products = [
-      { name: "Red Sneakers",      price: 799, category: "footwear",  img: "img/red-shoes.jpg" },
-      { name: "Sparkle Hair Clip", price: 120, category: "fancy",     img: "img/hair-clip.jpg" },
-      { name: "RC Car",            price: 999, category: "toys",      img: "img/rc-car.jpg" },
-      { name: "Notebook Pack",     price: 60,  category: "stationery",img: "img/notebook.jpg" },
-      { name: "Blue Sandals",      price: 450, category: "footwear",  img: "img/sandals.jpg" }
-    ];
-    saveProductsToStorage();
-  } else {
-    products = JSON.parse(raw);
-  }
-}
-
-// Save products to localStorage
-function saveProductsToStorage() {
-  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+// Load products from Firestore
+async function loadProductsFromDB() {
+  const snapshot = await getDocs(collection(db, "products"));
+  products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  displayProducts(products);
 }
 
 // Display products
@@ -44,7 +37,7 @@ function displayProducts(items) {
       <h3>${p.name}</h3>
       <p>₹${p.price}</p>
       <button onclick="addToCart(${i})">Add to Bill</button>
-      <button onclick="removeProduct(${i})" class="remove-btn">Remove</button>
+      <button onclick="removeProduct('${p.id}')" class="remove-btn">Remove</button>
     </div>`).join('');
 }
 
@@ -59,60 +52,29 @@ function filterProducts() {
   );
   displayProducts(filtered);
 }
-function displayProducts(items) {
-  grid.innerHTML = items.map((p) => `
-    <div class="product">
-      <img src="${p.img || 'img/placeholder.png'}" alt="${p.name}">
-      <h3>${p.name}</h3>
-      <p>₹${p.price}</p>
-      <button onclick="addToCartObj(${JSON.stringify(p).replace(/"/g, '&quot;')})">Add to Bill</button>
-      <button onclick="removeProductByName('${p.name}') " class="remove-btn">Remove</button>
-    </div>`).join('');
-}
-
-// Add to cart by object
-function addToCartObj(product) {
-  cart.push(product);
-  updateCart();
-}
-
-// Remove product by name
-function removeProductByName(name) {
-  const idx = products.findIndex(p => p.name === name);
-  if (idx !== -1 && confirm('Remove this product?')) {
-    products.splice(idx, 1);
-    saveProductsToStorage();
-    displayProducts(products);
-  }
-}
-
-// Expose global functions for onclick
-window.addToCartObj = addToCartObj;
-window.removeProductByName = removeProductByName;
 
 // Add product
-document.getElementById('addProductBtn').addEventListener('click', () => {
+document.getElementById('addProductBtn').addEventListener('click', async () => {
   const name = pName.value.trim();
   const price = parseInt(pPrice.value);
   if (!name || isNaN(price)) return alert('Enter valid name & price');
 
-  products.push({
+  const newProd = {
     name,
     price,
     category: pCategory.value,
     img: pImg.value.trim()
-  });
-  saveProductsToStorage();
+  };
+  await addDoc(collection(db, "products"), newProd);
   pName.value = pPrice.value = pImg.value = '';
-  displayProducts(products);
+  loadProductsFromDB();
 });
 
 // Remove product
-function removeProduct(index) {
+async function removeProduct(id) {
   if (!confirm('Remove this product?')) return;
-  products.splice(index, 1);
-  saveProductsToStorage();
-  displayProducts(products);
+  await deleteDoc(doc(db, "products", id));
+  loadProductsFromDB();
 }
 
 /* ---------- CART / BILL ---------- */
@@ -246,10 +208,11 @@ function buildBillHTML() {
 }
 
 /* ---------- INIT ---------- */
-loadProductsFromStorage();
-displayProducts(products);
+// Directly open app without login
+app.classList.remove('hidden');
+loadProductsFromDB();
 
-/* Expose globals for inline onclicks */
+/* Expose global funcs for inline onclicks */
 window.addToCart = addToCart;
 window.removeFromCart = removeFromCart;
 window.filterProducts = filterProducts;
