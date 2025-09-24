@@ -216,22 +216,35 @@ sendWhatsAppBtn.addEventListener('click', () => {
   lines.push('----------------------', `Total: ₹${total}`);
   window.open(`https://wa.me/${num}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
 });
-const downloadPdfBtn = document.getElementById('downloadPdfBtn');
-
 downloadPdfBtn.addEventListener('click', () => {
   if (!cart.length) return alert('No items in bill');
 
-  // Create temporary div
+  // Create temporary div with only table
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = buildBillHTML();
 
-  // Optional: add basic styles directly so PDF shows table properly
+  let total = 0;
+  const rows = cart.map((it, i) => {
+    total += it.price;
+    return `<tr><td>${i + 1}</td><td>${it.name}</td><td>₹${it.price}</td></tr>`;
+  }).join('');
+
+  tempDiv.innerHTML = `
+    <table>
+      <thead>
+        <tr><th>#</th><th>Item</th><th>Price</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr><td colspan="2"><strong>Total</strong></td><td><strong>₹${total}</strong></td></tr>
+      </tfoot>
+    </table>
+  `;
+
+  // Minimal styles so table is visible
   const style = document.createElement('style');
   style.textContent = `
-    body{font-family:Arial,sans-serif;padding:20px;}
     table{width:100%;border-collapse:collapse;margin-top:10px;}
-    td,th{border:1px solid #ddd;padding:8px;text-align:left;}
-    h1{margin-bottom:0.5rem;}
+    td, th{border:1px solid #000;padding:8px;text-align:left;}
   `;
   tempDiv.prepend(style);
 
@@ -248,8 +261,6 @@ downloadPdfBtn.addEventListener('click', () => {
     .save()
     .finally(() => tempDiv.remove());
 });
-
-
 
 function buildBillHTML() {
   let total = 0;
