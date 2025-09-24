@@ -15,27 +15,36 @@ const searchInput    = document.getElementById('searchInput');
 
 document.getElementById('applyFilters').addEventListener('click', filterProducts);
 
-// Load products from localStorage
-function loadProductsFromStorage() {
-  const raw = localStorage.getItem(PRODUCTS_KEY);
-  if (!raw) {
-    products = [
-      { name: "Red Sneakers",      price: 799, category: "footwear",  img: "img/red-shoes.jpg" },
-      { name: "Sparkle Hair Clip", price: 120, category: "fancy",     img: "img/hair-clip.jpg" },
-      { name: "RC Car",            price: 999, category: "toys",      img: "img/rc-car.jpg" },
-      { name: "Notebook Pack",     price: 60,  category: "stationery",img: "img/notebook.jpg" },
-      { name: "Blue Sandals",      price: 450, category: "footwear",  img: "img/sandals.jpg" }
-    ];
-    saveProductsToStorage();
-  } else {
-    products = JSON.parse(raw);
-  }
+async function loadProductsFromFirestore() {
+  const { db, firebaseFuncs } = window;
+  const colRef = firebaseFuncs.collection(db, 'products');
+  const snapshot = await firebaseFuncs.getDocs(colRef);
+
+  products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  displayProducts(products);
 }
 
-// Save products to localStorage
-function saveProductsToStorage() {
-  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
-}
+document.getElementById('addProductBtn').addEventListener('click', async () => {
+  const name = pName.value.trim();
+  const price = parseInt(pPrice.value);
+  if (!name || isNaN(price)) return alert('Enter valid name & price');
+
+  const newProduct = {
+    name,
+    price,
+    category: pCategory.value,
+    img: pImg.value.trim()
+  };
+
+  const { db, firebaseFuncs } = window;
+  const colRef = firebaseFuncs.collection(db, 'products');
+  await firebaseFuncs.addDoc(colRef, newProduct);
+
+  pName.value = pPrice.value = pImg.value = '';
+  await loadProductsFromFirestore(); // reload products
+});
+
+
 
 // Display products
 function displayProducts(items) {
@@ -82,15 +91,27 @@ document.getElementById('addProductBtn').addEventListener('click', () => {
   displayProducts(products);
 });
 
-// Remove product by name
-function removeProductByName(name) {
-  const idx = products.findIndex(p => p.name === name);
-  if (idx !== -1 && confirm('Remove this product?')) {
-    products.splice(idx, 1);
-    saveProductsToStorage();
-    displayProducts(products);
-  }
+async function removeProductByName(id) {
+  if (!confirm('Remove this product?')) return;
+
+  const { db, firebaseFuncs } = window;
+  const docRef = firebaseFuncs.doc(db, 'products', id);
+  await firebaseFuncs.deleteDoc(docRef);
+
+  await loadProductsFromFirestore();
 }
+function displayProducts(items) {
+  grid.innerHTML = items.map(p => `
+    <div class="product">
+      <img src="${p.img || 'img/placeholder.png'}" alt="${p.name}">
+      <h3>${p.name}</h3>
+      <p>₹${p.price}</p>
+      <button onclick="addToCartObj(${JSON.stringify(p).replace(/"/g,'&quot;')})">Add to Bill</button>
+      <button onclick="removeProductByName('${p.id}')" class="remove-btn">Remove</button>
+    </div>
+  `).join('');
+}
+
 
 /* ---------- CART ---------- */
 let cart = [];
@@ -218,8 +239,10 @@ function buildBillHTML() {
 }
 
 /* ---------- INIT ---------- */
-loadProductsFromStorage();
-displayProducts(products);
+window.addEventListener('DOMContentLoaded', async () => {
+  await loadProductsFromFirestore(); // load products from Firebase on page load
+});
+
 
 /* ---------- Expose globals ---------- */
 window.addToCartObj = addToCartObj;
