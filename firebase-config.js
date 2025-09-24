@@ -1,10 +1,9 @@
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCUWC1XwOEyXvi6c76AvHInJ5QI_UeVNdk",
-  authDomain: "wuroud-22c22.firebaseapp.com",
-  projectId: "wuroud-22c22",
-  storageBucket: "wuroud-22c22.firebasestorage.app",
-  messagingSenderId: "284673970948",
-  appId: "1:284673970948:web:a8888168e4aaf18908f651",
-  measurementId: "G-JY40D73MX5"
+// Your web app's Firebase configuration
+export const firebaseConfig = {
+  apiKey: "AIzaSyAbCtlIKuybglpbCmUfzbo6oy5kS0Aiits",
+  authDomain: "wuroud-8fa99.firebaseapp.com",
+  projectId: "wuroud-8fa99",
+  storageBucket: "wuroud-8fa99.appspot.com",
+  messagingSenderId: "1056456782887",
+  appId: "1:1056456782887:web:7298bdbe27031fdeeb4a02"
 };
