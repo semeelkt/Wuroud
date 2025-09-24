@@ -221,12 +221,22 @@ const downloadPdfBtn = document.getElementById('downloadPdfBtn');
 downloadPdfBtn.addEventListener('click', () => {
   if (!cart.length) return alert('No items in bill');
 
-  // Create a temporary div to hold the bill HTML
+  // Create temporary div
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = buildBillHTML();
+
+  // Optional: add basic styles directly so PDF shows table properly
+  const style = document.createElement('style');
+  style.textContent = `
+    body{font-family:Arial,sans-serif;padding:20px;}
+    table{width:100%;border-collapse:collapse;margin-top:10px;}
+    td,th{border:1px solid #ddd;padding:8px;text-align:left;}
+    h1{margin-bottom:0.5rem;}
+  `;
+  tempDiv.prepend(style);
+
   document.body.appendChild(tempDiv);
 
-  // Use html2pdf to download PDF
   html2pdf()
     .set({
       margin: 10,
@@ -236,8 +246,9 @@ downloadPdfBtn.addEventListener('click', () => {
     })
     .from(tempDiv)
     .save()
-    .finally(() => tempDiv.remove()); // remove temp div
+    .finally(() => tempDiv.remove());
 });
+
 
 
 function buildBillHTML() {
