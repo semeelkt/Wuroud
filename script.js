@@ -216,6 +216,27 @@ sendWhatsAppBtn.addEventListener('click', () => {
   lines.push('----------------------', `Total: ₹${total}`);
   window.open(`https://wa.me/${num}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
 });
+const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+
+downloadPdfBtn.addEventListener('click', () => {
+  if (!cart.length) return alert('No items in bill');
+
+  // Generate HTML for bill
+  const billHTML = buildBillHTML();
+
+  // Convert HTML to PDF using jsPDF
+  const doc = new jsPDF();
+  
+  // Simple approach: add bill HTML as text
+  doc.html(billHTML, {
+    callback: function(doc) {
+      doc.save('KT-Family-Store-Bill.pdf');
+    },
+    x: 10,
+    y: 10,
+    width: 190 // fit page width
+  });
+});
 
 function buildBillHTML() {
   let total = 0;
