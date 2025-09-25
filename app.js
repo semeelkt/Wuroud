@@ -309,25 +309,7 @@ function generatePDF() {
   // Table
   const head = [['Item', 'Qty', 'Price', 'Subtotal']];
   // Use Rs. as fallback if ₹ is not supported by the PDF font
-  // Draw a bold rupee symbol using vector path, fallback to INR if needed
-  function drawRupee(doc, x, y, size = 14) {
-    // Draw ₹ as a path (approximation)
-    doc.setDrawColor(40,40,40);
-    doc.setLineWidth(1.2);
-    // Vertical line
-    doc.line(x, y, x, y + size);
-    // Top horizontal
-    doc.line(x, y, x + size * 0.7, y);
-    // Middle horizontal
-    doc.line(x, y + size * 0.45, x + size * 0.6, y + size * 0.45);
-    // Lower curve (approximate)
-    doc.setLineWidth(1);
-    doc.arc(x + size * 0.35, y + size * 0.7, size * 0.35, 3.14, 0, false);
-    // Diagonal
-    doc.line(x, y + size * 0.7, x + size * 0.7, y + size * 0.7);
-  }
   function safeRupee(amount) {
-    // Return INR for table, draw ₹ manually after
     return 'INR ' + amount.toLocaleString();
   }
   const body = cart.map(i => [
@@ -361,12 +343,7 @@ function generatePDF() {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(40,40,40);
-  // Print INR amount, then draw ₹ symbol manually to the left
-  const totalText = safeRupee(total);
-  const totalX = pageWidth-120;
-  doc.text(totalText, totalX, finalY+44, { align: 'right' });
-  // Draw ₹ symbol left of INR
-  drawRupee(doc, totalX - doc.getTextWidth(totalText) - 18, finalY+34, 16);
+  doc.text(safeRupee(total), pageWidth-120, finalY+44, { align: 'right' });
 
   // Footer
   doc.setFont('helvetica', 'normal');
