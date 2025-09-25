@@ -326,7 +326,8 @@ function generatePDF() {
   y += 14;
   // Bill meta (no David Stores)
   doc.setFont('helvetica', 'normal');
-  doc.text(`Bill No: SR2`, 40, y);
+  const billNo = getAndIncrementBillNo();
+  doc.text(`Bill No: ${billNo}`, 40, y);
   doc.text(`Payment Mode: Cash`, 180, y);
   y += 13;
   doc.text('DR Ref : 2', 40, y);
@@ -360,7 +361,8 @@ function generatePDF() {
   doc.text('Sub Total', 45, itemY);
   doc.text(cart.reduce((s, i) => s + i.qty, 0).toString(), 220, itemY, { align: 'left' });
   doc.text(subTotal.toFixed(2), 320, itemY, { align: 'left' });
-  y = itemY + 10;
+  // Add medium space before total
+  y = itemY + 30;
 
   // Total (no discount/tax)
   doc.setFont('helvetica', 'bold');
@@ -425,6 +427,7 @@ function printableHtml() {
   `).join("");
   const subTotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const totalQty = cart.reduce((s, i) => s + i.qty, 0);
+  const billNo = getAndIncrementBillNo();
   return `
     <html><head><title>Wuroud Bill</title>
       <style>
@@ -439,6 +442,7 @@ function printableHtml() {
         td { border-bottom: 1px solid #eee; }
         .right { text-align: right; }
         .small { font-size: 11px; }
+        .spacer { height: 24px; }
       </style>
     </head><body>
       <div class="bill-wrap">
@@ -448,7 +452,7 @@ function printableHtml() {
         <div class="center small">GSTIN : 33AAAGP0685F1ZH</div>
         <div class="center bold" style="margin:8px 0 4px 0;">Retail Invoice</div>
         <div class="small">Date : ${new Date().toLocaleDateString()}, ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-        <div class="small">Bill No: SR2 &nbsp; Payment Mode: Cash</div>
+        <div class="small">Bill No: ${billNo} &nbsp; Payment Mode: Cash</div>
         <div class="small">DR Ref : 2</div>
         <div class="divider"></div>
         <table>
@@ -456,7 +460,7 @@ function printableHtml() {
           <tbody>${rows}</tbody>
           <tr class="bold"><td>Sub Total</td><td style="text-align:center">${totalQty}</td><td class="right">${subTotal.toFixed(2)}</td></tr>
         </table>
-        <div class="divider"></div>
+        <div class="spacer"></div>
         <table style="font-size:13px;">
           <tr class="bold"><td>TOTAL</td><td class="right">Rs ${subTotal.toFixed(2)}</td></tr>
           <tr><td>Cash :</td><td class="right">Rs ${subTotal.toFixed(2)}</td></tr>
@@ -467,6 +471,44 @@ function printableHtml() {
       </div>
     </body></html>
   `;
+// Bill number generator: AA1, AA2, ..., ZZZZ9, then continues infinitely
+function getAndIncrementBillNo() {
+  let billNo = localStorage.getItem('wuroud_bill_no') || 'AA1';
+  const next = nextBillNo(billNo);
+  localStorage.setItem('wuroud_bill_no', next);
+  return billNo;
+}
+
+function nextBillNo(current) {
+  // Find the numeric part at the end
+  const match = current.match(/([A-Z]+)(\d+)$/);
+  if (!match) return 'AA1';
+  let [_, letters, num] = match;
+  num = parseInt(num, 10) + 1;
+  if (num > 9) {
+    // increment letters
+    letters = incrementLetters(letters);
+    num = 1;
+  }
+  return letters + num;
+}
+
+function incrementLetters(letters) {
+  // Like base-26 increment, but with A-Z
+  let arr = letters.split('');
+  let i = arr.length - 1;
+  while (i >= 0) {
+    if (arr[i] === 'Z') {
+      arr[i] = 'A';
+      i--;
+    } else {
+      arr[i] = String.fromCharCode(arr[i].charCodeAt(0) + 1);
+      return arr.join('');
+    }
+  }
+  // If all Z, add another letter
+  return 'A' + arr.join('');
+}
 }
 
 function shareOnWhatsApp() {
