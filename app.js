@@ -110,12 +110,13 @@ addBtn.addEventListener("click", async () => {
   if (!name || !price) return alert("Please enter product name and price.");
 
   if (user) {
-    await addDoc(userProductsCol(user.uid), {
+    await addDoc(productsCol, {
       name,
       price,
       category,
       image: image || "",
       createdAt: Date.now(),
+      userId: user.uid
     });
 
     pName.value = "";
@@ -128,10 +129,8 @@ addBtn.addEventListener("click", async () => {
 
 // Listen to product changes for the logged-in user
 function loadProducts() {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const q = query(userProductsCol(user.uid), orderBy("createdAt", "desc"));
+  // Show all products in the global collection, ordered by createdAt
+  const q = query(productsCol, orderBy("createdAt", "desc"));
   onSnapshot(q, snap => {
     products = [];
     snap.forEach(docSnap => {
@@ -177,10 +176,26 @@ function attachProductCardListeners() {
       if (!confirm("Delete this product?")) return;
       const user = auth.currentUser;
       if (user) {
-        await deleteDoc(doc(db, "users", user.uid, "products", id));
+        await deleteDoc(doc(db, "products", id));
       }
     };
   });
+// Render a product card for the grid
+function productCardHtml(p) {
+  return `
+    <div class="product-card">
+      <div class="prod-img-wrap">
+        ${p.image ? `<img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" />` : `<div class="no-img">No Image</div>`}
+      </div>
+      <div class="prod-info">
+        <div class="prod-title">${escapeHtml(p.name)}</div>
+        <div class="prod-meta">₹${p.price} | ${escapeHtml(p.category)}</div>
+        <button class="btn add-to-bill" data-id="${p.id}">Add to Bill</button>
+        <button class="btn remove-prod" data-id="${p.id}">Remove</button>
+      </div>
+    </div>
+  `;
+}
 }
 
 // Add product to cart
