@@ -297,47 +297,105 @@ function generatePDF() {
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 40;
 
-  // Header with colored background
-  doc.setFillColor(123, 31, 162); // purple
-  doc.roundedRect(30, y, pageWidth - 60, 50, 10, 10, 'F');
+  // Header (black and white, like sample)
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(22);
-  doc.text('Wuroud Bill', pageWidth/2, y + 32, { align: 'center' });
-
-  y += 70;
+  doc.setFontSize(15);
+  doc.setTextColor(0,0,0);
+  doc.text('WUROUD', pageWidth/2, y, { align: 'center' });
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(12);
-  doc.setTextColor(120,120,120);
-  doc.text(`Mobile: ${document.getElementById("custMobile").value || '-'}`, 40, y);
-
+  doc.setFontSize(10);
   y += 18;
-  // Table
-  const head = [['Item', 'Qty', 'Price', 'Subtotal']];
-  // Use Rs. as fallback if ₹ is not supported by the PDF font
-  function safeRupee(amount) {
-    return 'Rs. ' + amount.toLocaleString();
-  }
-  const body = cart.map(i => [
-    i.name,
-    String(i.qty),
-    safeRupee(i.price),
-    safeRupee(i.price * i.qty)
-  ]);
-  doc.autoTable({
-    head: head,
-    body: body,
-    startY: y + 10,
-    theme: 'grid',
-    headStyles: { fillColor: [245, 245, 250], textColor: [123,31,162], fontStyle: 'bold' },
-    styles: { font: 'helvetica', fontSize: 11, cellPadding: 6 },
-    bodyStyles: { textColor: [40,40,40] },
-    tableLineColor: [240,240,240],
-    tableLineWidth: 0.8,
-    margin: { left: 40, right: 40 },
-  });
+  doc.text('Puthirikal', pageWidth/2, y, { align: 'center' });
+  y += 13;
+  doc.text('PHONE : +91 9061706318', pageWidth/2, y, { align: 'center' });
+  y += 13;
+  doc.text('GSTIN : 33AAAGP0685F1ZH', pageWidth/2, y, { align: 'center' });
+  y += 18;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('Retail Invoice', pageWidth/2, y, { align: 'center' });
 
-  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  // Bill meta
+  y += 20;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  const now = new Date();
+  const dateStr = now.toLocaleDateString();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  doc.text(`Date : ${dateStr}, ${timeStr}`, 40, y);
+  y += 14;
+  doc.setFont('helvetica', 'bold');
+  doc.text('David Stores', 40, y);
+  doc.setFont('helvetica', 'normal');
+  y += 13;
+  doc.text(`Bill No: SR2`, 40, y);
+  doc.text(`Payment Mode: Cash`, 180, y);
+  y += 13;
+  doc.text('DR Ref : 2', 40, y);
+
+  // Table header
+  y += 18;
+  doc.setLineWidth(0.7);
+  doc.line(40, y, pageWidth-40, y);
+  y += 10;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Item', 45, y);
+  doc.text('Qty', 220, y);
+  doc.text('Amt', 320, y);
+  y += 8;
+  doc.setLineWidth(0.5);
+  doc.line(40, y, pageWidth-40, y);
+
+  // Table body
+  doc.setFont('helvetica', 'normal');
+  let subTotal = 0;
+  let itemY = y + 14;
+  cart.forEach(i => {
+    doc.text(i.name, 45, itemY);
+    doc.text(String(i.qty), 220, itemY, { align: 'left' });
+    doc.text(i.price.toFixed(2), 320, itemY, { align: 'left' });
+    subTotal += i.price * i.qty;
+    itemY += 14;
+  });
+  // Subtotal
+  doc.setFont('helvetica', 'bold');
+  doc.text('Sub Total', 45, itemY);
+  doc.text(cart.reduce((s, i) => s + i.qty, 0).toString(), 220, itemY, { align: 'left' });
+  doc.text(subTotal.toFixed(2), 320, itemY, { align: 'left' });
+  y = itemY + 10;
+
+  // Discount
+  doc.setFont('helvetica', 'normal');
+  doc.text('(-) Discount', 45, y);
+  doc.text('26.00', 320, y, { align: 'left' });
+  y += 14;
+
+  // Taxes
+  doc.setFontSize(9);
+  doc.text('CGST @ 14.00%', 60, y); doc.text('24.36', 320, y, { align: 'left' }); y += 12;
+  doc.text('SGST @ 14.00%', 60, y); doc.text('24.36', 320, y, { align: 'left' }); y += 12;
+  doc.text('CGST @ 2.50%', 60, y); doc.text('14.00', 320, y, { align: 'left' }); y += 12;
+  doc.text('SGST @ 2.50%', 60, y); doc.text('14.00', 320, y, { align: 'left' });
+  y += 16;
+
+  // Total
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('TOTAL', 45, y);
+  doc.text('Rs 811.00', 320, y, { align: 'left' });
+  y += 18;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text('Cash :', 45, y); doc.text('Rs 811.00', 320, y, { align: 'left' });
+  y += 13;
+  doc.text('Cash tendered:', 45, y); doc.text('Rs 811.00', 320, y, { align: 'left' });
+
+  // Footer
+  y += 20;
+  doc.setFontSize(8);
+  doc.text('E & O E', pageWidth-80, y);
+
+  doc.save(`Wuroud-bill-${Date.now()}.pdf`);
   const finalY = doc.lastAutoTable.finalY;
 
   // Total summary box
@@ -373,100 +431,63 @@ function printBill() {
 }
 
 function printableHtml() {
+  // Black and white, match sample image
   const rows = cart.map(i => `
     <tr>
       <td>${i.name}</td>
       <td style="text-align:center">${i.qty}</td>
-      <td>₹${i.price}</td>
-      <td>₹${i.price * i.qty}</td>
+      <td style="text-align:right">${i.price.toFixed(2)}</td>
     </tr>
   `).join("");
-  const total = cart.reduce((s, i) => s + i.price * i.qty, 0).toLocaleString();
-
+  const subTotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const totalQty = cart.reduce((s, i) => s + i.qty, 0);
   return `
     <html><head><title>Wuroud Bill</title>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
       <style>
-        body {
-          font-family: 'Inter', Arial, sans-serif;
-          background: #f7f8fa;
-          color: #222;
-          padding: 32px 0;
-        }
-        .bill-container {
-          max-width: 480px;
-          margin: 0 auto;
-          background: #fff;
-          border-radius: 14px;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-          padding: 32px 28px 28px 28px;
-        }
-        .bill-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 18px;
-        }
-        .bill-logo {
-          width: 38px; height: 38px; border-radius: 8px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; color: #7b1fa2; letter-spacing: 1px;
-        }
-        .bill-title {
-          font-size: 1.5rem;
-          font-weight: 600;
-          letter-spacing: 1px;
-        }
-        .bill-meta {
-          color: #888;
-          font-size: 0.98rem;
-          margin-bottom: 18px;
-        }
-        table {
-          width: 100%;
-          border-collapse: separate;
-          border-spacing: 0;
-          margin-bottom: 18px;
-        }
-        th, td {
-          padding: 10px 8px;
-          text-align: left;
-        }
-        thead th {
-          background: #f5f5fa;
-          color: #7b1fa2;
-          font-weight: 600;
-          border-bottom: 2px solid #ececec;
-        }
-        tbody td {
-          border-bottom: 1px solid #f0f0f0;
-        }
-        tfoot td {
-          font-size: 1.1rem;
-          font-weight: 600;
-          color: #222;
-          background: #f8f6ff;
-          border-top: 2px solid #ececec;
-        }
-        .bill-footer {
-          text-align: center;
-          color: #aaa;
-          font-size: 0.95rem;
-          margin-top: 18px;
-        }
+        body { font-family: 'Courier New', Courier, monospace; color: #000; background: #fff; }
+        .bill-wrap { max-width: 340px; margin: 0 auto; border: 1px solid #000; padding: 18px 12px; }
+        .center { text-align: center; }
+        .bold { font-weight: bold; }
+        .divider { border-top: 1.5px dashed #000; margin: 8px 0; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 2px 2px; }
+        th { border-bottom: 1px solid #000; }
+        td { border-bottom: 1px solid #eee; }
+        .right { text-align: right; }
+        .small { font-size: 11px; }
       </style>
-    </head>
-    <body>
-      <div class="bill-container">
-        <div class="bill-header">
-          <div class="bill-logo">W</div>
-          <div class="bill-title">Wuroud Bill</div>
-        </div>
-        <div class="bill-meta">Mobile: ${document.getElementById("custMobile").value || '-'}</div>
+    </head><body>
+      <div class="bill-wrap">
+        <div class="center bold" style="font-size:16px;">WUROUD</div>
+        <div class="center small">Puthirikal</div>
+        <div class="center small">PHONE : +91 9061706318</div>
+        <div class="center small">GSTIN : 33AAAGP0685F1ZH</div>
+        <div class="center bold" style="margin:8px 0 4px 0;">Retail Invoice</div>
+        <div class="small">Date : ${new Date().toLocaleDateString()}, ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+        <div class="small">Bill No: SR2 &nbsp; Payment Mode: Cash</div>
+        <div class="small">DR Ref : 2</div>
+        <div class="divider"></div>
         <table>
-          <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Sub</th></tr></thead>
+          <thead><tr><th>Item</th><th>Qty</th><th class="right">Amt</th></tr></thead>
           <tbody>${rows}</tbody>
-          <tfoot><tr><td colspan="3">Total</td><td>₹${total}</td></tr></tfoot>
+          <tr class="bold"><td>Sub Total</td><td style="text-align:center">${totalQty}</td><td class="right">${subTotal.toFixed(2)}</td></tr>
         </table>
-        <div class="bill-footer">Thank you for shopping with Wuroud!</div>
+        <div class="divider"></div>
+        <table style="font-size:12px;">
+          <tr><td>(-) Discount</td><td class="right">26.00</td></tr>
+          <tr><td>CGST @ 14.00%</td><td class="right">24.36</td></tr>
+          <tr><td>SGST @ 14.00%</td><td class="right">24.36</td></tr>
+          <tr><td>CGST @ 2.50%</td><td class="right">14.00</td></tr>
+          <tr><td>SGST @ 2.50%</td><td class="right">14.00</td></tr>
+        </table>
+        <div class="divider"></div>
+        <table style="font-size:13px;">
+          <tr class="bold"><td>TOTAL</td><td class="right">Rs 811.00</td></tr>
+          <tr><td>Cash :</td><td class="right">Rs 811.00</td></tr>
+          <tr><td>Cash tendered:</td><td class="right">Rs 811.00</td></tr>
+        </table>
+        <div class="divider"></div>
+        <div class="right small">E & O E</div>
       </div>
     </body></html>
   `;

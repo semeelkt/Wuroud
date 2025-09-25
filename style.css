@@ -198,18 +198,19 @@ main{display:flex;gap:28px;margin-top:18px}
   background:transparent;border:1px solid #ddd;padding:8px 10px;
 }
 
-/* bill table */
-.bill-card input{width:100%;padding:8px;border-radius:8px;border:1px solid #eee;margin-bottom:8px}
-.bill-table{width:100%;border-collapse:collapse;font-size:14px}
-.bill-table thead th{ text-align:left;padding:8px 6px;color:var(--muted);font-weight:600}
-.bill-table tbody td{padding:8px 6px;border-top:1px solid #f0f0f0}
-.bill-table tfoot td{padding:10px 6px;font-size:16px}
+
+/* bill table - black and white only */
+.bill-card input{width:100%;padding:8px;border-radius:8px;border:1px solid #000;margin-bottom:8px;background:#fff;color:#000}
+.bill-table{width:100%;border-collapse:collapse;font-size:14px;background:#fff;color:#000}
+.bill-table thead th{ text-align:left;padding:8px 6px;color:#000;font-weight:700;border-bottom:1.5px solid #000;background:#fff;}
+.bill-table tbody td{padding:8px 6px;border-top:1px solid #000;color:#000;background:#fff;}
+.bill-table tfoot td{padding:10px 6px;font-size:16px;color:#000;background:#fff;border-top:1.5px solid #000;}
 
 .bill-actions{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .bill-actions .btn{min-width:unset;padding:10px}
 
 /* footer */
-.footer{padding:20px 24px;text-align:center;color:var(--muted);margin-top:18px}
+.footer{padding:20px 24px;text-align:center;color:#000;margin-top:18px;background:#fff}
 
 /* small screens */
 @media(max-width:900px){
