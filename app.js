@@ -291,49 +291,20 @@ document.getElementById("clearBill").addEventListener("click", () => {
 });
 
 function generatePDF() {
-  // Robustly access jsPDF and autoTable from the global scope
+  // Robustly access jsPDF and autoTable from global scope
   const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
   const autoTable = window.jspdf?.autoTable || window.jspdf_autotable || (jsPDF && jsPDF.autoTable);
-  
-  // Check if jsPDF is loaded
   if (!jsPDF) {
     alert("jsPDF library not loaded. Please check your internet connection or script includes.");
     return;
   }
-  
-  // Check if AutoTable plugin is loaded
   if (!autoTable) {
     alert("jsPDF-AutoTable plugin not loaded. Please check your internet connection or script includes.");
     return;
   }
-
-  // Create the PDF document
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-
-  // Get page width for positioning elements
   const pageWidth = doc.internal.pageSize.getWidth();
-  
-  // Starting vertical position
   let y = 40;
-
-  // Example: Add a table to the PDF
-  autoTable(doc, {
-    startY: y, // Starting position for the table
-    head: [['Column 1', 'Column 2', 'Column 3']], // Header row
-    body: [
-      ['Row 1, Data 1', 'Row 1, Data 2', 'Row 1, Data 3'],
-      ['Row 2, Data 1', 'Row 2, Data 2', 'Row 2, Data 3'],
-    ], 
-    didDrawPage: function (data) {
-      // You can add custom content here, such as page numbers or images
-      doc.text("Sample PDF", pageWidth / 2, 20, { align: 'center' });
-    }
-  });
-
-  // Save the generated PDF
-  doc.save('example.pdf');
-}
-
 
   // Header with colored background
   doc.setFillColor(123, 31, 162); // purple
