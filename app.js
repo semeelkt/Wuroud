@@ -1,3 +1,5 @@
+// Import jsPDF as ES module
+import jsPDF from 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js';
 // Render a product card for the grid
 function productCardHtml(p) {
   return `
@@ -292,7 +294,6 @@ document.getElementById("clearBill").addEventListener("click", () => {
 });
 
 function generatePDF() {
-  const jsPDF = window.jspdf.jsPDF;
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 40;
