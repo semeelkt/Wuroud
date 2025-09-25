@@ -324,10 +324,8 @@ function generatePDF() {
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   doc.text(`Date : ${dateStr}, ${timeStr}`, 40, y);
   y += 14;
-  doc.setFont('helvetica', 'bold');
-  doc.text('David Stores', 40, y);
+  // Bill meta (no David Stores)
   doc.setFont('helvetica', 'normal');
-  y += 13;
   doc.text(`Bill No: SR2`, 40, y);
   doc.text(`Payment Mode: Cash`, 180, y);
   y += 13;
@@ -364,31 +362,17 @@ function generatePDF() {
   doc.text(subTotal.toFixed(2), 320, itemY, { align: 'left' });
   y = itemY + 10;
 
-  // Discount
-  doc.setFont('helvetica', 'normal');
-  doc.text('(-) Discount', 45, y);
-  doc.text('26.00', 320, y, { align: 'left' });
-  y += 14;
-
-  // Taxes
-  doc.setFontSize(9);
-  doc.text('CGST @ 14.00%', 60, y); doc.text('24.36', 320, y, { align: 'left' }); y += 12;
-  doc.text('SGST @ 14.00%', 60, y); doc.text('24.36', 320, y, { align: 'left' }); y += 12;
-  doc.text('CGST @ 2.50%', 60, y); doc.text('14.00', 320, y, { align: 'left' }); y += 12;
-  doc.text('SGST @ 2.50%', 60, y); doc.text('14.00', 320, y, { align: 'left' });
-  y += 16;
-
-  // Total
+  // Total (no discount/tax)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.text('TOTAL', 45, y);
-  doc.text('Rs 811.00', 320, y, { align: 'left' });
+  doc.text(`Rs ${subTotal.toFixed(2)}`, 320, y, { align: 'left' });
   y += 18;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  doc.text('Cash :', 45, y); doc.text('Rs 811.00', 320, y, { align: 'left' });
+  doc.text('Cash :', 45, y); doc.text(`Rs ${subTotal.toFixed(2)}`, 320, y, { align: 'left' });
   y += 13;
-  doc.text('Cash tendered:', 45, y); doc.text('Rs 811.00', 320, y, { align: 'left' });
+  doc.text('Cash tendered:', 45, y); doc.text(`Rs ${subTotal.toFixed(2)}`, 320, y, { align: 'left' });
 
   // Footer
   y += 20;
@@ -473,18 +457,10 @@ function printableHtml() {
           <tr class="bold"><td>Sub Total</td><td style="text-align:center">${totalQty}</td><td class="right">${subTotal.toFixed(2)}</td></tr>
         </table>
         <div class="divider"></div>
-        <table style="font-size:12px;">
-          <tr><td>(-) Discount</td><td class="right">26.00</td></tr>
-          <tr><td>CGST @ 14.00%</td><td class="right">24.36</td></tr>
-          <tr><td>SGST @ 14.00%</td><td class="right">24.36</td></tr>
-          <tr><td>CGST @ 2.50%</td><td class="right">14.00</td></tr>
-          <tr><td>SGST @ 2.50%</td><td class="right">14.00</td></tr>
-        </table>
-        <div class="divider"></div>
         <table style="font-size:13px;">
-          <tr class="bold"><td>TOTAL</td><td class="right">Rs 811.00</td></tr>
-          <tr><td>Cash :</td><td class="right">Rs 811.00</td></tr>
-          <tr><td>Cash tendered:</td><td class="right">Rs 811.00</td></tr>
+          <tr class="bold"><td>TOTAL</td><td class="right">Rs ${subTotal.toFixed(2)}</td></tr>
+          <tr><td>Cash :</td><td class="right">Rs ${subTotal.toFixed(2)}</td></tr>
+          <tr><td>Cash tendered:</td><td class="right">Rs ${subTotal.toFixed(2)}</td></tr>
         </table>
         <div class="divider"></div>
         <div class="right small">E & O E</div>
