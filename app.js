@@ -156,6 +156,7 @@ function renderProducts() {
     return nameMatch && catMatch && priceMatch;
   });
 
+  console.log("Rendering products:", filtered);
   productGrid.innerHTML = filtered.map(p => productCardHtml(p)).join("");
   attachProductCardListeners();
 }
