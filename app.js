@@ -292,7 +292,7 @@ document.getElementById("clearBill").addEventListener("click", () => {
 });
 
 function generatePDF() {
-  const { jsPDF } = window.jspdf;
+  const jsPDF = window.jspdf.jsPDF;
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 40;
