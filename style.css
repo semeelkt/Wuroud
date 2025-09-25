@@ -48,11 +48,11 @@
   width: 100%;
 }
 #productGrid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: flex-start;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px 18px;
+  justify-items: center;
+  align-items: stretch;
 }
 :root{
   --bg:#f5f6f7;
