@@ -213,3 +213,77 @@ main{display:flex;gap:28px;margin-top:18px}
   main{flex-direction:column}
   .right-col{width:100%}
 }
+
+/* LOGIN SECTION STYLES */
+#authContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 32px auto 0 auto;
+  max-width: 350px;
+  width: 100%;
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 32px 24px 24px 24px;
+}
+#loginForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+#loginForm input {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #e6e7e8;
+  background: #fafbfc;
+  font-size: 16px;
+  margin-bottom: 0;
+  width: 100%;
+  transition: border 0.2s;
+}
+#loginForm input:focus {
+  border: 1.5px solid var(--accent);
+  outline: none;
+}
+#loginForm .btn {
+  width: 100%;
+  margin-top: 4px;
+}
+#logoutBtn {
+  margin-top: 18px;
+  width: 100%;
+}
+
+/* Responsive tweaks for login on small screens */
+@media (max-width: 600px) {
+  #authContainer {
+    max-width: 98vw;
+    padding: 18px 6vw 18px 6vw;
+    box-shadow: none;
+    border-radius: 0;
+  }
+}
+
+/* GENERAL RESPONSIVE IMPROVEMENTS */
+@media (max-width: 600px) {
+  .container {
+    padding: 10px;
+  }
+  .card, .prod-card {
+    padding: 8px;
+    border-radius: 8px;
+  }
+  .grid {
+    gap: 10px;
+  }
+  .prod-image {
+    height: 90px;
+    font-size: 11px;
+  }
+  .prod-body {
+    padding: 8px;
+  }
+}
