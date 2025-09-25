@@ -305,6 +305,83 @@ function generatePDF() {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 40;
+  // Your existing code and imports go here...
+
+// Adding PDF generation logic
+document.getElementById("generatePdf").addEventListener("click", generatePDF);
+
+function generatePDF() {
+  // Check if jsPDF and AutoTable are available
+  if (typeof jsPDF === 'undefined' || typeof jsPDF.autoTable === 'undefined') {
+    alert("jsPDF-AutoTable plugin not loaded. Please check your internet connection or script includes.");
+    return;
+  }
+
+  // Create jsPDF instance
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  // Header section
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let y = 40;
+  doc.setFillColor(123, 31, 162); // Purple
+  doc.roundedRect(30, y, pageWidth - 60, 50, 10, 10, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(22);
+  doc.text('Wuroud Bill', pageWidth / 2, y + 32, { align: 'center' });
+
+  y += 70;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(12);
+  doc.setTextColor(120, 120, 120);
+  doc.text(`Mobile: ${document.getElementById("custMobile").value || '-'}`, 40, y);
+
+  y += 18;
+
+  // Table setup
+  const head = [['Item', 'Qty', 'Price', 'Subtotal']];
+  const body = cart.map(i => [
+    i.name,
+    String(i.qty),
+    '₹' + i.price.toLocaleString(),
+    '₹' + (i.price * i.qty).toLocaleString()
+  ]);
+  
+  doc.autoTable({
+    head: head,
+    body: body,
+    startY: y + 10,
+    theme: 'grid',
+    headStyles: { fillColor: [245, 245, 250], textColor: [123, 31, 162], fontStyle: 'bold' },
+    styles: { font: 'helvetica', fontSize: 11, cellPadding: 6 },
+    bodyStyles: { textColor: [40, 40, 40] },
+    tableLineColor: [240, 240, 240],
+    tableLineWidth: 0.8,
+    margin: { left: 40, right: 40 },
+  });
+
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const finalY = doc.lastAutoTable.finalY;
+
+  // Total section
+  doc.setFillColor(248, 246, 255);
+  doc.roundedRect(pageWidth - 210, finalY + 20, 160, 38, 8, 8, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(40, 40, 40);
+  doc.text('Total', pageWidth - 200, finalY + 44);
+  doc.text('₹' + total.toLocaleString(), pageWidth - 60, finalY + 44, { align: 'right' });
+
+  // Footer
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(170, 170, 170);
+  doc.text('Thank you for shopping with Wuroud!', pageWidth / 2, finalY + 80, { align: 'center' });
+
+  // Save PDF
+  doc.save(`Wuroud-Bill-${Date.now()}.pdf`);
+}
 
   // Header with colored background
   doc.setFillColor(123, 31, 162); // purple
