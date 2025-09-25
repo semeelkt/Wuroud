@@ -1,5 +1,3 @@
-// Import jsPDF as ES module
-import jsPDF from 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js';
 // Render a product card for the grid
 function productCardHtml(p) {
   return `
@@ -294,6 +292,7 @@ document.getElementById("clearBill").addEventListener("click", () => {
 });
 
 function generatePDF() {
+  const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 40;
@@ -383,6 +382,21 @@ function generatePDF() {
   doc.text('E & O E', pageWidth-80, y);
 
   doc.save(`Wuroud-bill-${Date.now()}.pdf`);
+  const finalY = doc.lastAutoTable.finalY;
+
+  // Total summary box
+  doc.setFillColor(248,246,255);
+  doc.roundedRect(pageWidth-210, finalY+20, 160, 38, 8, 8, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(40,40,40);
+  // Draw 'Total' and amount in one line, same color, spaced apart
+  const totalLabel = 'Total';
+  const totalAmount = safeRupee(total);
+  const totalBoxX = pageWidth-210+16;
+  const totalBoxY = finalY+44;
+  doc.text(totalLabel, totalBoxX, totalBoxY);
+  doc.text(totalAmount, pageWidth-60, totalBoxY, { align: 'right' });
 
   // Footer
   doc.setFont('helvetica', 'normal');
