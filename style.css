@@ -140,9 +140,12 @@ main{display:flex;gap:28px;margin-top:18px}
   background:transparent;
 }
 .grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-  gap:18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 18px;
+  grid-auto-rows: 1fr;
+  max-height: calc(3 * 260px); /* 3 rows, adjust 260px as needed for your card height */
+  overflow-y: auto;
 }
 
 /* product card style like screenshot */
@@ -278,7 +281,7 @@ main{display:flex;gap:28px;margin-top:18px}
   }
   .grid {
      gap: 10px;
-     grid-template-columns: repeat(3, 1fr);
+     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   }
   .prod-image {
     height: 90px;
