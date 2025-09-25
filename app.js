@@ -292,7 +292,17 @@ document.getElementById("clearBill").addEventListener("click", () => {
 });
 
 function generatePDF() {
-  const { jsPDF } = window.jspdf;
+  // Robustly access jsPDF and autoTable from global scope
+  const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
+  const autoTable = window.jspdf?.autoTable || window.jspdf_autotable || (jsPDF && jsPDF.autoTable);
+  if (!jsPDF) {
+    alert("jsPDF library not loaded. Please check your internet connection or script includes.");
+    return;
+  }
+  if (!autoTable) {
+    alert("jsPDF-AutoTable plugin not loaded. Please check your internet connection or script includes.");
+    return;
+  }
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 40;
