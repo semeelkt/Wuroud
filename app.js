@@ -310,7 +310,7 @@ function generatePDF() {
   const head = [['Item', 'Qty', 'Price', 'Subtotal']];
   // Use Rs. as fallback if ₹ is not supported by the PDF font
   function safeRupee(amount) {
-    return 'INR ' + amount.toLocaleString();
+    return 'Rs.' + amount.toLocaleString();
   }
   const body = cart.map(i => [
     i.name,
