@@ -259,6 +259,17 @@ function renderCart() {
     `;
   }).join("");
 
+  // Attach remove event listeners for cart items
+  document.querySelectorAll('.small-remove').forEach(btn => {
+    btn.onclick = function() {
+      const tr = btn.closest('tr');
+      const id = tr && tr.getAttribute('data-id');
+      if (id) {
+        cart = cart.filter(item => item.id !== id);
+        renderCart();
+      }
+    };
+  });
   // Update total
   updateTotal();
 }
