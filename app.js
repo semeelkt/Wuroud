@@ -18,14 +18,18 @@ function productCardHtml(p) {
 // Requires firebase-config.js to set window.FIREBASE_CONFIG
 console.log("app.js is loaded!");
 
-// Initialize Firebase using global scripts
-// firebaseConfig is now on window
-const app = firebase.initializeApp(window.firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+// Import Firebase SDKs
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc, query, orderBy, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { firebaseConfig } from "./firebase-config.js";
 
-// Enable offline persistence for Firestore (compat SDK)
-db.enablePersistence().catch((err) => {
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth();
+
+// Enable offline persistence for Firestore
+enableIndexedDbPersistence(db).catch((err) => {
   if (err.code === 'failed-precondition') {
     console.log("Persistence failed. Multiple tabs open.");
   } else if (err.code === 'unimplemented') {
@@ -77,7 +81,7 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
   }
 
   try {
-    await auth.signInWithEmailAndPassword(email, password);
+    await signInWithEmailAndPassword(auth, email, password);
     showAuthUI(false);
     loadProducts();
   } catch (error) {
@@ -96,7 +100,7 @@ document.getElementById("signUpBtn").addEventListener("click", async () => {
   }
 
   try {
-    await auth.createUserWithEmailAndPassword(email, password);
+    await createUserWithEmailAndPassword(auth, email, password);
     alert("Account created successfully");
   } catch (error) {
     console.error("Error signing up: ", error.message);
@@ -105,7 +109,7 @@ document.getElementById("signUpBtn").addEventListener("click", async () => {
 });
 
 logoutBtn.addEventListener("click", async () => {
-  await auth.signOut();
+  await signOut(auth);
   showAuthUI(true);
   productGrid.innerHTML = '';
 });
