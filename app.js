@@ -160,8 +160,14 @@ function loadProducts() {
     snap.forEach(docSnap => {
       products.push({ id: docSnap.id, ...docSnap.data() });
     });
-    renderProducts();
-    populateCategoryFilter();
+  renderProducts();
+  populateCategoryFilter();
+// Populate the category filter dropdown with unique categories from products
+function populateCategoryFilter() {
+  const categories = Array.from(new Set(products.map(p => p.category))).filter(Boolean);
+  categoryFilter.innerHTML = '<option value="all">All Categories</option>' +
+    categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join("");
+}
   });
 }
 
