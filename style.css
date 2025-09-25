@@ -277,7 +277,8 @@ main{display:flex;gap:28px;margin-top:18px}
     border-radius: 8px;
   }
   .grid {
-    gap: 10px;
+     gap: 10px;
+     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   }
   .prod-image {
     height: 90px;
