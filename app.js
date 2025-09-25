@@ -54,6 +54,13 @@ const categoryFilter = document.getElementById("categoryFilter");
 const minPrice = document.getElementById("minPrice");
 const maxPrice = document.getElementById("maxPrice");
 const applyFilter = document.getElementById("applyFilter");
+
+// Filter/search listeners
+searchInput.addEventListener("input", renderProducts);
+categoryFilter.addEventListener("change", renderProducts);
+minPrice.addEventListener("input", renderProducts);
+maxPrice.addEventListener("input", renderProducts);
+applyFilter.addEventListener("click", renderProducts);
 const loginForm = document.getElementById("loginForm");
 const authContainer = document.getElementById("authContainer");
 const logoutBtn = document.getElementById("logoutBtn");
@@ -195,6 +202,10 @@ function attachProductCardListeners() {
       const user = auth.currentUser;
       if (user) {
         await deleteDoc(doc(db, "products", id));
+        // Remove from UI immediately
+        loadProducts();
+      } else {
+        alert("You must be logged in to remove products.");
       }
     };
   });
