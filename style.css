@@ -286,4 +286,72 @@ main{display:flex;gap:28px;margin-top:18px}
   .prod-body {
     padding: 8px;
   }
+  /* Product card responsiveness */
+  .product-card {
+    min-width: 140px;
+    max-width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+  }
+  .prod-img-wrap {
+    width: 70px;
+    height: 70px;
+    margin-bottom: 6px;
+  }
+  .prod-title, .prod-meta {
+    font-size: 13px;
+  }
+  #productGrid {
+    gap: 8px;
+  }
+  /* Header responsiveness */
+  .site-header {
+    padding: 12px 0 0 0;
+  }
+  .header-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .brand h1 {
+    font-size: 20px;
+  }
+  /* Search area */
+  .search-area {
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+  .search-area input, .search-area select {
+    min-width: 0;
+    width: 100%;
+    font-size: 15px;
+  }
+  /* Layout columns */
+  main {
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .left-col, .right-col {
+    width: 100%;
+    flex: unset;
+  }
+  /* Bill table */
+  .bill-table thead th, .bill-table tbody td, .bill-table tfoot td {
+    padding: 6px 2px;
+    font-size: 12px;
+  }
+  /* Footer */
+  .footer {
+    padding: 10px 4px;
+    font-size: 13px;
+  }
+  /* Login form tweaks */
+  #loginForm input {
+    font-size: 15px;
+    padding: 10px 10px;
+  }
+  #authContainer {
+    padding: 10px 2vw 10px 2vw;
+  }
 }
