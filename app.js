@@ -119,9 +119,10 @@ addBtn.addEventListener("click", async () => {
       userId: user.uid
     });
 
-    pName.value = "";
-    pPrice.value = "";
-    pImage.value = "";
+  pName.value = "";
+  pPrice.value = "";
+  pImage.value = "";
+  loadProducts();
   } else {
     alert("Please log in to add products.");
   }
