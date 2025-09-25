@@ -337,13 +337,16 @@ function generatePDF() {
   // Total summary box
   doc.setFillColor(248,246,255);
   doc.roundedRect(pageWidth-200, finalY+20, 140, 38, 8, 8, 'F');
-  doc.setFontSize(13);
-  doc.setTextColor(123,31,162);
-  doc.text('Total', pageWidth-190, finalY+42);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(40,40,40);
-  doc.text(safeRupee(total), pageWidth-120, finalY+44, { align: 'right' });
+  // Draw 'Total' and amount in one line, same color, spaced apart
+  const totalLabel = 'Total';
+  const totalAmount = safeRupee(total);
+  const totalBoxX = pageWidth-200+12;
+  const totalBoxY = finalY+44;
+  doc.text(totalLabel, totalBoxX, totalBoxY);
+  doc.text(totalAmount, pageWidth-60, totalBoxY, { align: 'right' });
 
   // Footer
   doc.setFont('helvetica', 'normal');
