@@ -285,6 +285,12 @@ document.getElementById("generatePdf").addEventListener("click", generatePDF);
 document.getElementById("printBtn").addEventListener("click", printBill);
 document.getElementById("whatsappBtn").addEventListener("click", shareOnWhatsApp);
 
+// Clear Cart button functionality
+document.getElementById("clearBill").addEventListener("click", () => {
+  cart = [];
+  renderCart();
+});
+
 function generatePDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
