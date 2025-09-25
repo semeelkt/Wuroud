@@ -1,3 +1,19 @@
+// Render a product card for the grid
+function productCardHtml(p) {
+  return `
+    <div class="product-card">
+      <div class="prod-img-wrap">
+        ${p.image ? `<img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" />` : `<div class="no-img">No Image</div>`}
+      </div>
+      <div class="prod-info">
+        <div class="prod-title">${escapeHtml(p.name)}</div>
+        <div class="prod-meta">₹${p.price} | ${escapeHtml(p.category)}</div>
+        <button class="btn add-to-bill" data-id="${p.id}">Add to Bill</button>
+        <button class="btn remove-prod" data-id="${p.id}">Remove</button>
+      </div>
+    </div>
+  `;
+}
 // app.js
 // Requires firebase-config.js to set window.FIREBASE_CONFIG
 console.log("app.js is loaded!");
