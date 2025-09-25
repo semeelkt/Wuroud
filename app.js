@@ -308,11 +308,18 @@ function generatePDF() {
   y += 18;
   // Table
   const head = [['Item', 'Qty', 'Price', 'Subtotal']];
+  // Use Rs. as fallback if ₹ is not supported by the PDF font
+  function safeRupee(amount) {
+    // Try to use ₹, fallback to Rs. if not rendered
+    return (typeof window !== 'undefined' && window.navigator && window.navigator.userAgent.includes('Windows'))
+      ? 'Rs.' + amount.toLocaleString()
+      : '₹' + amount.toLocaleString();
+  }
   const body = cart.map(i => [
     i.name,
     String(i.qty),
-    '₹' + i.price.toLocaleString(),
-    '₹' + (i.price * i.qty).toLocaleString()
+    safeRupee(i.price),
+    safeRupee(i.price * i.qty)
   ]);
   doc.autoTable({
     head: head,
@@ -339,7 +346,7 @@ function generatePDF() {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(40,40,40);
-  doc.text('₹' + total.toLocaleString(), pageWidth-120, finalY+44, { align: 'right' });
+  doc.text(safeRupee(total), pageWidth-120, finalY+44, { align: 'right' });
 
   // Footer
   doc.setFont('helvetica', 'normal');
