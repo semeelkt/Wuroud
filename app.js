@@ -332,22 +332,89 @@ function printableHtml() {
 
   return `
     <html><head><title>Wuroud Bill</title>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
       <style>
-        body{font-family:Inter, Arial; padding:20px; color:#111}
-        table{width:100%;border-collapse:collapse}
-        td,th{padding:8px;border:1px solid #eee}
-        h2{margin:0 0 10px 0}
+        body {
+          font-family: 'Inter', Arial, sans-serif;
+          background: #f7f8fa;
+          color: #222;
+          padding: 32px 0;
+        }
+        .bill-container {
+          max-width: 480px;
+          margin: 0 auto;
+          background: #fff;
+          border-radius: 14px;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+          padding: 32px 28px 28px 28px;
+        }
+        .bill-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 18px;
+        }
+        .bill-logo {
+          width: 38px; height: 38px; border-radius: 8px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; color: #7b1fa2; letter-spacing: 1px;
+        }
+        .bill-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          letter-spacing: 1px;
+        }
+        .bill-meta {
+          color: #888;
+          font-size: 0.98rem;
+          margin-bottom: 18px;
+        }
+        table {
+          width: 100%;
+          border-collapse: separate;
+          border-spacing: 0;
+          margin-bottom: 18px;
+        }
+        th, td {
+          padding: 10px 8px;
+          text-align: left;
+        }
+        thead th {
+          background: #f5f5fa;
+          color: #7b1fa2;
+          font-weight: 600;
+          border-bottom: 2px solid #ececec;
+        }
+        tbody td {
+          border-bottom: 1px solid #f0f0f0;
+        }
+        tfoot td {
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: #222;
+          background: #f8f6ff;
+          border-top: 2px solid #ececec;
+        }
+        .bill-footer {
+          text-align: center;
+          color: #aaa;
+          font-size: 0.95rem;
+          margin-top: 18px;
+        }
       </style>
     </head>
     <body>
-      <h2>Wuroud Bill</h2>
-      <div>Mobile: ${document.getElementById("custMobile").value || '-'}</div>
-      <br/>
-      <table>
-        <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Sub</th></tr></thead>
-        <tbody>${rows}</tbody>
-        <tfoot><tr><td colspan="3"><b>Total</b></td><td>₹${total}</td></tr></tfoot>
-      </table>
+      <div class="bill-container">
+        <div class="bill-header">
+          <div class="bill-logo">W</div>
+          <div class="bill-title">Wuroud Bill</div>
+        </div>
+        <div class="bill-meta">Mobile: ${document.getElementById("custMobile").value || '-'}</div>
+        <table>
+          <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Sub</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td colspan="3">Total</td><td>₹${total}</td></tr></tfoot>
+        </table>
+        <div class="bill-footer">Thank you for shopping with Wuroud!</div>
+      </div>
     </body></html>
   `;
 }
