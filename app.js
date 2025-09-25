@@ -24,6 +24,7 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, si
 import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc, query, orderBy, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth();
@@ -291,17 +292,7 @@ document.getElementById("clearBill").addEventListener("click", () => {
 });
 
 function generatePDF() {
-  // Robustly access jsPDF and autoTable from global scope
-  const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
-  const autoTable = window.jspdf?.autoTable || window.jspdf_autotable || (jsPDF && jsPDF.autoTable);
-  if (!jsPDF) {
-    alert("jsPDF library not loaded. Please check your internet connection or script includes.");
-    return;
-  }
-  if (!autoTable) {
-    alert("jsPDF-AutoTable plugin not loaded. Please check your internet connection or script includes.");
-    return;
-  }
+  const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 40;
@@ -501,3 +492,4 @@ function shareOnWhatsApp() {
 function escapeHtml(str) {
   return String(str || "").replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[s]);
 }
+Z
