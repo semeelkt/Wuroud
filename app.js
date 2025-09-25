@@ -77,7 +77,7 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
   }
 
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    await auth.signInWithEmailAndPassword(email, password);
     showAuthUI(false);
     loadProducts();
   } catch (error) {
@@ -96,7 +96,7 @@ document.getElementById("signUpBtn").addEventListener("click", async () => {
   }
 
   try {
-    await createUserWithEmailAndPassword(auth, email, password);
+    await auth.createUserWithEmailAndPassword(email, password);
     alert("Account created successfully");
   } catch (error) {
     console.error("Error signing up: ", error.message);
@@ -105,7 +105,7 @@ document.getElementById("signUpBtn").addEventListener("click", async () => {
 });
 
 logoutBtn.addEventListener("click", async () => {
-  await signOut(auth);
+  await auth.signOut();
   showAuthUI(true);
   productGrid.innerHTML = '';
 });
