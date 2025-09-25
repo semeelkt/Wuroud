@@ -311,8 +311,8 @@ function generatePDF() {
   const body = cart.map(i => [
     i.name,
     String(i.qty),
-    '\u20B9' + i.price.toLocaleString(),
-    '\u20B9' + (i.price * i.qty).toLocaleString()
+    '₹' + i.price.toLocaleString(),
+    '₹' + (i.price * i.qty).toLocaleString()
   ]);
   doc.autoTable({
     head: head,
@@ -339,7 +339,7 @@ function generatePDF() {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(40,40,40);
-  doc.text('\u20B9' + total.toLocaleString(), pageWidth-120, finalY+44, { align: 'right' });
+  doc.text('₹' + total.toLocaleString(), pageWidth-120, finalY+44, { align: 'right' });
 
   // Footer
   doc.setFont('helvetica', 'normal');
