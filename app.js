@@ -575,12 +575,14 @@ function completeSale() {
   // Decrease stock for all items
   cart.forEach(item => {
     decreaseStock(item.id, item.qty);
-    // Track transaction
-    addTransaction({
-      id: item.id,
-      name: item.name,
-      price: item.price
-    });
+    // Track each sold item as a separate transaction
+    for (let i = 0; i < item.qty; i++) {
+      addTransaction({
+        id: item.id,
+        name: item.name,
+        price: item.price
+      });
+    }
   });
   
   // Log sale completion
