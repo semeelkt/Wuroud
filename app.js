@@ -59,6 +59,11 @@ let dailyTotals = {}; // Store daily totals by date
 let performanceChart = null; // Chart.js instance
 const DAILY_TARGET = 2000; // Daily target in rupees
 
+// Notification system
+let notificationQueue = [];
+let notificationTimeout = null;
+const LOW_STOCK_THRESHOLD = 5; // Alert when stock <= 5
+
 // Authentication functions
 document.getElementById("loginBtn").addEventListener("click", async () => {
   const email = emailInput.value.trim();
@@ -423,6 +428,11 @@ function completeSale() {
     });
   });
   
+  // Show success notification for sale completion
+  const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
+  showNotification(`🎉 Sale completed! ${itemCount} items sold for ₹${totalAmount.toLocaleString()}`, 'success', 5000);
+  
   updateTransactionDisplay();
   return true;
 }
@@ -649,6 +659,114 @@ function shareOnWhatsApp() {
 function escapeHtml(str) {
   return String(str || "").replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[s]);
 }
+
+// Notification System
+function createNotificationContainer() {
+  if (!document.getElementById('notification-container')) {
+    const container = document.createElement('div');
+    container.id = 'notification-container';
+    container.className = 'notification-container';
+    document.body.appendChild(container);
+  }
+}
+
+function showNotification(message, type = 'info', duration = 5000) {
+  createNotificationContainer();
+  
+  const notification = document.createElement('div');
+  const notificationId = 'notification-' + Date.now();
+  notification.id = notificationId;
+  notification.className = `notification notification-${type}`;
+  
+  const iconMap = {
+    'success': '✅',
+    'error': '❌',
+    'warning': '⚠️',
+    'info': 'ℹ️',
+    'low-stock': '📦'
+  };
+  
+  notification.innerHTML = `
+    <div class="notification-content">
+      <div class="notification-icon">${iconMap[type] || iconMap.info}</div>
+      <div class="notification-message">${escapeHtml(message)}</div>
+      <button class="notification-close" onclick="closeNotification('${notificationId}')">&times;</button>
+    </div>
+    <div class="notification-progress"></div>
+  `;
+  
+  const container = document.getElementById('notification-container');
+  container.appendChild(notification);
+  
+  // Trigger animation
+  setTimeout(() => {
+    notification.classList.add('notification-show');
+  }, 100);
+  
+  // Auto-hide notification
+  if (duration > 0) {
+    const progressBar = notification.querySelector('.notification-progress');
+    progressBar.style.animationDuration = `${duration}ms`;
+    
+    setTimeout(() => {
+      closeNotification(notificationId);
+    }, duration);
+  }
+  
+  return notificationId;
+}
+
+function closeNotification(notificationId) {
+  const notification = document.getElementById(notificationId);
+  if (notification) {
+    notification.classList.add('notification-hide');
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 300);
+  }
+}
+
+function showLowStockNotification(productName, currentStock) {
+  const message = `Low Stock Alert: ${productName} has only ${currentStock} items left!`;
+  return showNotification(message, 'low-stock', 7000);
+}
+
+function showOutOfStockNotification(productName) {
+  const message = `Out of Stock: ${productName} is completely out of stock!`;
+  return showNotification(message, 'error', 8000);
+}
+
+function checkLowStockAlerts() {
+  const lowStockProducts = [];
+  const outOfStockProducts = [];
+  
+  products.forEach(product => {
+    const stock = getProductStock(product.id);
+    if (stock === 0) {
+      outOfStockProducts.push(product);
+    } else if (stock <= LOW_STOCK_THRESHOLD && stock > 0) {
+      lowStockProducts.push({...product, stock});
+    }
+  });
+  
+  // Show notifications for low stock items
+  lowStockProducts.forEach(product => {
+    showLowStockNotification(product.name, product.stock);
+  });
+  
+  // Show notifications for out of stock items
+  outOfStockProducts.forEach(product => {
+    showOutOfStockNotification(product.name);
+  });
+  
+  return { lowStock: lowStockProducts.length, outOfStock: outOfStockProducts.length };
+}
+
+// Global functions
+window.closeNotification = closeNotification;
+window.checkLowStockAlerts = checkLowStockAlerts;
 
 // Transaction Management Functions
 function getDateString(date) {
@@ -923,6 +1041,13 @@ function showMainSection(section) {
   if (section === 'stock') {
     updateStockDisplay();
     populateStockFilters();
+    // Check for low stock alerts when viewing stock section
+    setTimeout(() => {
+      const alerts = checkLowStockAlerts();
+      if (alerts.lowStock === 0 && alerts.outOfStock === 0) {
+        showNotification('✅ All products have adequate stock levels!', 'success', 3000);
+      }
+    }, 500);
   } else if (section === 'transactions') {
     updateTransactionSectionDisplay();
   }
@@ -1023,6 +1148,13 @@ function initializeStockData() {
   if (savedStocks) {
     productStocks = JSON.parse(savedStocks);
   }
+  
+  // Check for low stock alerts after initializing stock data
+  setTimeout(() => {
+    if (products.length > 0) {
+      checkLowStockAlerts();
+    }
+  }, 3000); // Delay to ensure products are loaded
 }
 
 function saveStockData() {
@@ -1034,7 +1166,27 @@ function getProductStock(productId) {
 }
 
 function updateProductStock(productId, newStock) {
-  productStocks[productId] = Math.max(0, newStock);
+  const oldStock = productStocks[productId] || 0;
+  const updatedStock = Math.max(0, newStock);
+  productStocks[productId] = updatedStock;
+  
+  // Check for stock level changes and show notifications
+  const product = products.find(p => p.id === productId);
+  if (product) {
+    // Stock decreased and now low/out
+    if (oldStock > updatedStock) {
+      if (updatedStock === 0) {
+        showOutOfStockNotification(product.name);
+      } else if (updatedStock <= LOW_STOCK_THRESHOLD) {
+        showLowStockNotification(product.name, updatedStock);
+      }
+    }
+    // Stock increased from low/out to good levels
+    else if (oldStock <= LOW_STOCK_THRESHOLD && updatedStock > LOW_STOCK_THRESHOLD) {
+      showNotification(`✅ ${product.name} stock replenished successfully! (${updatedStock} items)`, 'success', 4000);
+    }
+  }
+  
   saveStockData();
   updateStockDisplay();
   // Also re-render product cards to show updated stock

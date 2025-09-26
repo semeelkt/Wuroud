@@ -269,6 +269,9 @@
               <option value="low">Low Stock</option>
               <option value="out">Out of Stock</option>
             </select>
+            <button onclick="checkLowStockAlerts()" class="stock-alert-btn">
+              🔔 Check Stock Alerts
+            </button>
           </div>
           
           <div class="stock-table-container">
@@ -292,6 +295,9 @@
       </div>
     </section>
   </main>
+
+  <!-- Professional Notification System -->
+  <div id="notification-container" class="notification-container"></div>
 
   <footer class="footer container">
     <small>Wuroud still in grand atmosphere</small>
