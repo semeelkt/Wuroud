@@ -37,14 +37,12 @@ const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
 const minPrice = document.getElementById("minPrice");
 const maxPrice = document.getElementById("maxPrice");
-const applyFilter = document.getElementById("applyFilter");
 
 // Filter/search listeners
 searchInput.addEventListener("input", renderProducts);
 categoryFilter.addEventListener("change", renderProducts);
 minPrice.addEventListener("input", renderProducts);
 maxPrice.addEventListener("input", renderProducts);
-applyFilter.addEventListener("click", renderProducts);
 const loginForm = document.getElementById("loginForm");
 const authContainer = document.getElementById("authContainer");
 const logoutBtn = document.getElementById("logoutBtn");
