@@ -621,9 +621,17 @@ function updateTodayTransactions() {
           <span class="transaction-time">${new Date(t.timestamp).toLocaleTimeString()}</span>
         </div>
         <div class="transaction-amount">₹${t.price}</div>
-        <button class="transaction-remove" onclick="removeTransaction('${t.id}')">×</button>
+        <button class="transaction-remove" data-transaction-id="${t.id}">×</button>
       </div>
     `).join('');
+    
+    // Add event listeners to remove buttons
+    document.querySelectorAll('.transaction-remove').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const transactionId = this.getAttribute('data-transaction-id');
+        removeTransaction(transactionId);
+      });
+    });
   }
   
   todayTotal.textContent = `₹${getTodayTotal().toLocaleString()}`;
