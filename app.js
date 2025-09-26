@@ -20,7 +20,7 @@ console.log("app.js is loaded!");
 
 // Import Firebase SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc, query, orderBy, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -87,8 +87,7 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
-    showAuthUI(false);
-    loadProducts();
+    // onAuthStateChanged will handle UI updates and loading
   } catch (error) {
     console.error("Error signing in: ", error.message);
     alert("Error signing in: " + error.message);
@@ -115,15 +114,42 @@ document.getElementById("signUpBtn").addEventListener("click", async () => {
 
 logoutBtn.addEventListener("click", async () => {
   await signOut(auth);
-  showAuthUI(true);
-  productGrid.innerHTML = '';
+  // onAuthStateChanged will handle UI cleanup
 });
 
 // Display login/signup form or products
 function showAuthUI(isLoggedOut) {
-  loginForm.style.display = isLoggedOut ? "block" : "none";
-  logoutBtn.style.display = isLoggedOut ? "none" : "block";
-  authContainer.style.display = isLoggedOut ? "none" : "block";
+  // Toggle visibility using CSS classes
+  if (isLoggedOut) {
+    loginForm.classList.remove('hidden');
+    logoutBtn.classList.add('hidden');
+  } else {
+    loginForm.classList.add('hidden');
+    logoutBtn.classList.remove('hidden');
+  }
+  
+  // Show/hide main content based on auth state
+  const mainContent = document.querySelector('main');
+  if (mainContent) {
+    if (isLoggedOut) {
+      mainContent.classList.add('hidden');
+    } else {
+      mainContent.classList.remove('hidden');
+    }
+  }
+  
+  // Position auth container appropriately
+  if (isLoggedOut) {
+    authContainer.style.position = "fixed";
+    authContainer.style.top = "50%";
+    authContainer.style.left = "50%";
+    authContainer.style.transform = "translate(-50%, -50%)";
+    authContainer.style.zIndex = "1000";
+  } else {
+    authContainer.style.position = "static";
+    authContainer.style.transform = "none";
+    authContainer.style.zIndex = "auto";
+  }
 }
 
 // Add product to Firestore under logged-in user's collection
@@ -674,12 +700,29 @@ function updateMonthTransactions() {
   monthTotal.textContent = `₹${getMonthTotal().toLocaleString()}`;
 }
 
+// Authentication State Management
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // User is signed in
+    console.log("User is logged in:", user.email);
+    showAuthUI(false);
+    loadProducts();
+    loadTransactionsFromStorage();
+    updateTransactionDisplay();
+  } else {
+    // User is signed out
+    console.log("User is logged out");
+    showAuthUI(true);
+    productGrid.innerHTML = '';
+    cart = [];
+    transactions = [];
+    renderCart();
+    updateTransactionDisplay();
+  }
+});
+
 // Tab switching functionality
 document.addEventListener('DOMContentLoaded', function() {
-  // Load saved transactions
-  loadTransactionsFromStorage();
-  updateTransactionDisplay();
-  
   // Initialize performance chart
   setTimeout(() => {
     initializePerformanceChart();

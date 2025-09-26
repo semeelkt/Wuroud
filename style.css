@@ -218,6 +218,11 @@ main{display:flex;gap:28px;margin-top:18px}
   .right-col{width:100%}
 }
 
+/* UTILITY CLASSES */
+.hidden {
+  display: none !important;
+}
+
 /* LOGIN SECTION STYLES */
 #authContainer {
   display: flex;
