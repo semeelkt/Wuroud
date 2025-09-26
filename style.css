@@ -1,3 +1,49 @@
+/* Leaderboard card responsiveness */
+.leaderboard-card {
+  min-width: 0;
+}
+.leaderboard-header {
+  flex-wrap: wrap;
+}
+.leaderboard-list {
+  width: 100%;
+}
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+  flex-wrap: wrap;
+}
+.leaderboard-item .product-name {
+  flex: 1;
+  font-weight: 500;
+  color: #444;
+  font-size: 16px;
+  letter-spacing: 0.1px;
+}
+.leaderboard-item .sold-count {
+  font-size: 14px;
+  color: #28a745;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .leaderboard-header h3 {
+    font-size: 15px !important;
+  }
+  .leaderboard-item .product-name {
+    font-size: 14px !important;
+  }
+  .leaderboard-item .sold-count {
+    font-size: 12px !important;
+  }
+  .leaderboard-item {
+    gap: 6px;
+    padding: 8px 0;
+  }
+}
 /* Notification Bell Icon Styles */
 .notification-bell {
   position: relative;

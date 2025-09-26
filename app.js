@@ -1061,9 +1061,66 @@ function listenToTransactions() {
       });
     });
     updateTransactionDisplay();
+    updateLeaderboards();
   }, error => {
     console.error("Error loading transactions from Firestore:", error);
   });
+}
+
+// Leaderboard logic
+function updateLeaderboards() {
+  // Weekly leaderboard: last 7 days
+  const now = new Date();
+  const weekAgo = new Date();
+  weekAgo.setDate(now.getDate() - 6); // 7 days including today
+  const weekStart = weekAgo.toISOString().split('T')[0];
+
+  // Monthly leaderboard: last 30 days
+  const monthAgo = new Date();
+  monthAgo.setDate(now.getDate() - 29); // 30 days including today
+  const monthStart = monthAgo.toISOString().split('T')[0];
+
+  // Helper to count product sales
+  function getTopSold(transactions, startDate) {
+    const sales = {};
+    transactions.forEach(t => {
+      if (t.date >= startDate) {
+        if (!sales[t.productId]) {
+          sales[t.productId] = { name: t.productName, count: 0 };
+        }
+        sales[t.productId].count += 1;
+      }
+    });
+    // Convert to array and sort by count desc
+    return Object.entries(sales)
+      .map(([id, info]) => ({ id, name: info.name, count: info.count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5); // Top 5
+  }
+
+  const weeklyTop = getTopSold(transactions, weekStart);
+  const monthlyTop = getTopSold(transactions, monthStart);
+
+  // Render leaderboards
+  const weeklyEl = document.getElementById('weeklyLeaderboard');
+  const monthlyEl = document.getElementById('monthlyLeaderboard');
+
+  function renderLeaderboard(list, el) {
+    if (!el) return;
+    if (list.length === 0) {
+      el.innerHTML = '<p class="no-data">No sales in this period</p>';
+      return;
+    }
+    el.innerHTML = list.map((item) => `
+      <div class="leaderboard-item" style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
+        <span class="product-name" style="flex: 1; font-weight: 500; color: #444; font-size: 16px; letter-spacing: 0.1px;">${escapeHtml(item.name)}</span>
+        <span class="sold-count" style="font-size: 14px; color: #28a745; font-weight: 600;">${item.count} sold</span>
+      </div>
+    `).join('');
+  }
+
+  renderLeaderboard(weeklyTop, weeklyEl);
+  renderLeaderboard(monthlyTop, monthlyEl);
 }
 
 // Tab switching functionality

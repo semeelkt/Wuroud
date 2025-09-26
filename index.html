@@ -242,42 +242,120 @@
         </div>
         
         <div class="right-col">
-          <!-- Performance Chart Section -->
-          <div class="card performance-card">
-            <div class="performance-header">
-              <h3>Daily Performance</h3>
-              <div class="performance-stats">
-                <div class="stat-item">
-                  <span class="stat-label">Target:</span>
-                  <span class="stat-value target">₹2,000</span>
+          <div style="display: flex; gap: 20px; align-items: flex-start;">
+            <style>
+              @media (max-width: 600px) {
+                .right-col > div[style*='display: flex'] {
+                  flex-direction: column !important;
+                  gap: 0 !important;
+                  align-items: center !important;
+                }
+                .performance-card {
+                  min-width: 0 !important;
+                  margin-bottom: 12px !important;
+                }
+                .leaderboard-card {
+                  min-width: 0 !important;
+                  margin-bottom: 12px !important;
+                  width: 100% !important;
+                  max-width: 350px;
+                  margin-left: auto !important;
+                  margin-right: auto !important;
+                }
+                .leaderboard-list {
+                  width: 100% !important;
+                }
+              }
+            </style>
+            <style>
+              @media (max-width: 600px) {
+                .right-col > div[style*='display: flex'] {
+                  flex-direction: column !important;
+                  gap: 0 !important;
+                }
+                .performance-card {
+                  min-width: 0 !important;
+                  margin-bottom: 12px !important;
+                }
+                .leaderboard-card {
+                  min-width: 0 !important;
+                  margin-bottom: 12px !important;
+                }
+                .leaderboard-list {
+                  width: 100% !important;
+                }
+              }
+            </style>
+            <!-- Performance Chart Section -->
+            <div class="card performance-card" style="min-width: 340px;">
+              <div class="performance-header">
+                <h3>Daily Performance</h3>
+                <div class="performance-stats">
+                  <div class="stat-item">
+                    <span class="stat-label">Target:</span>
+                    <span class="stat-value target">₹2,000</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Today:</span>
+                    <span id="todayPerformance" class="stat-value today">₹0</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Status:</span>
+                    <span id="performanceStatus" class="stat-value status neutral">On Track</span>
+                  </div>
                 </div>
-                <div class="stat-item">
-                  <span class="stat-label">Today:</span>
-                  <span id="todayPerformance" class="stat-value today">₹0</span>
+              </div>
+              <div class="chart-container">
+                <canvas id="performanceChart" width="400" height="200"></canvas>
+              </div>
+              <div class="chart-legend">
+                <div class="legend-item">
+                  <span class="legend-color profit"></span>
+                  <span class="legend-text">Profit (Above ₹2,000)</span>
                 </div>
-                <div class="stat-item">
-                  <span class="stat-label">Status:</span>
-                  <span id="performanceStatus" class="stat-value status neutral">On Track</span>
+                <div class="legend-item">
+                  <span class="legend-color loss"></span>
+                  <span class="legend-text">Loss (Below ₹2,000)</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-color target-line"></span>
+                  <span class="legend-text">Target Line (₹2,000)</span>
                 </div>
               </div>
             </div>
-            
-            <div class="chart-container">
-              <canvas id="performanceChart" width="400" height="200"></canvas>
-            </div>
-            
-            <div class="chart-legend">
-              <div class="legend-item">
-                <span class="legend-color profit"></span>
-                <span class="legend-text">Profit (Above ₹2,000)</span>
+
+            <div style="display: flex; flex-direction: column; gap: 20px; min-width: 280px;">
+              <!-- Weekly Leaderboard -->
+              <div class="card leaderboard-card">
+                <div class="leaderboard-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                  <span style="font-size: 22px; color: #222; display: flex; align-items: center;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" fill="#222"/>
+                      <path d="M12 7L14 13H10L12 7Z" fill="#fff"/>
+                      <circle cx="12" cy="16" r="1.5" fill="#fff"/>
+                    </svg>
+                  </span>
+                  <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: #111;">Weekly Top Sold Products</h3>
+                </div>
+                <div id="weeklyLeaderboard" class="leaderboard-list">
+                  <p class="no-data">Loading...</p>
+                </div>
               </div>
-              <div class="legend-item">
-                <span class="legend-color loss"></span>
-                <span class="legend-text">Loss (Below ₹2,000)</span>
-              </div>
-              <div class="legend-item">
-                <span class="legend-color target-line"></span>
-                <span class="legend-text">Target Line (₹2,000)</span>
+              <!-- Monthly Leaderboard -->
+              <div class="card leaderboard-card">
+                <div class="leaderboard-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                  <span style="font-size: 22px; color: #222; display: flex; align-items: center;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="4" y="4" width="16" height="16" rx="8" fill="#222"/>
+                      <path d="M12 8V16" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+                      <circle cx="12" cy="18" r="1.5" fill="#fff"/>
+                    </svg>
+                  </span>
+                  <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: #111;">Monthly Top Sold Products</h3>
+                </div>
+                <div id="monthlyLeaderboard" class="leaderboard-list">
+                  <p class="no-data">Loading...</p>
+                </div>
               </div>
             </div>
           </div>
