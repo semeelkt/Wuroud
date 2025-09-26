@@ -25,6 +25,7 @@ enableIndexedDbPersistence(db).catch((err) => {
 // Firestore reference
 const productsCol = collection(db, "products");
 const userProductsCol = (userId) => collection(db, "users", userId, "products");
+const transactionsCol = collection(db, "transactions");
 
 // UI Elements
 const productGrid = document.getElementById("productGrid");
@@ -464,20 +465,22 @@ function addToCart(product) {
   renderCart();
 }
 
-// Add transaction to today's records
-function addTransaction(product) {
+// Add transaction to Firestore
+async function addTransaction(product) {
   const now = new Date();
   const transaction = {
-    id: 'txn_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
     productId: product.id,
     productName: product.name,
     price: product.price,
     timestamp: now.toISOString(),
-    date: getDateString(now)
+    date: getDateString(now),
+    user: auth.currentUser ? auth.currentUser.email : null
   };
-  
-  transactions.push(transaction);
-  saveTransactionsToStorage();
+  try {
+    await addDoc(transactionsCol, transaction);
+  } catch (e) {
+    console.error('Error adding transaction to Firestore:', e);
+  }
 }
 
 // Render the cart
@@ -922,19 +925,16 @@ function cleanupOldTransactions() {
   saveTransactionsToStorage();
 }
 
-function removeTransaction(transactionId) {
-  // Find the transaction to get product info before removing it
-  const transaction = transactions.find(t => t.id === transactionId);
-  
-  if (transaction && transaction.productId) {
-    // Restore stock by increasing it by 1 (since each transaction represents 1 item sold)
-    increaseStock(transaction.productId, 1);
+// Remove transaction from Firestore
+async function removeTransaction(transactionId, productId) {
+  try {
+    await deleteDoc(doc(db, "transactions", transactionId));
+    if (productId) {
+      increaseStock(productId, 1);
+    }
+  } catch (e) {
+    console.error('Error removing transaction from Firestore:', e);
   }
-  
-  // Remove the transaction
-  transactions = transactions.filter(t => t.id !== transactionId);
-  saveTransactionsToStorage();
-  updateTransactionDisplay();
 }
 
 function getTodayTotal() {
@@ -962,9 +962,7 @@ function updateTransactionDisplay() {
 function updateTodayTransactions() {
   const todayTransactionsList = document.getElementById('todayTransactionsList');
   const todayTotal = document.getElementById('todayTotal');
-  
   const todaysTransactions = transactions.filter(t => t.date === getTodayString());
-  
   if (todaysTransactions.length === 0) {
     todayTransactionsList.innerHTML = '<p class="no-transactions">No transactions today</p>';
   } else {
@@ -975,19 +973,18 @@ function updateTodayTransactions() {
           <span class="transaction-time">${new Date(t.timestamp).toLocaleTimeString()}</span>
         </div>
         <div class="transaction-amount">₹${t.price}</div>
-        <button class="transaction-remove" data-transaction-id="${t.id}">×</button>
+        <button class="transaction-remove" data-transaction-id="${t.id}" data-product-id="${t.productId}">×</button>
       </div>
     `).join('');
-    
     // Add event listeners to remove buttons
     document.querySelectorAll('.transaction-remove').forEach(btn => {
       btn.addEventListener('click', function() {
         const transactionId = this.getAttribute('data-transaction-id');
-        removeTransaction(transactionId);
+        const productId = this.getAttribute('data-product-id');
+        removeTransaction(transactionId, productId);
       });
     });
   }
-  
   todayTotal.textContent = `₹${getTodayTotal().toLocaleString()}`;
 }
 
@@ -1032,8 +1029,7 @@ onAuthStateChanged(auth, (user) => {
     showAuthUI(false);
     initializeStockData(); // Initialize stock data
     loadProducts();
-    loadTransactionsFromStorage();
-    updateTransactionDisplay();
+    listenToTransactions();
     // Force re-render after stock initialization
     setTimeout(() => {
       renderProducts();
@@ -1051,6 +1047,24 @@ onAuthStateChanged(auth, (user) => {
     updateTransactionDisplay();
   }
 });
+
+// Listen to Firestore for transactions
+function listenToTransactions() {
+  const q = query(transactionsCol, orderBy("timestamp", "desc"));
+  onSnapshot(q, snap => {
+    transactions = [];
+    snap.forEach(docSnap => {
+      const data = docSnap.data();
+      transactions.push({
+        id: docSnap.id,
+        ...data
+      });
+    });
+    updateTransactionDisplay();
+  }, error => {
+    console.error("Error loading transactions from Firestore:", error);
+  });
+}
 
 // Tab switching functionality
 document.addEventListener('DOMContentLoaded', function() {
