@@ -59,9 +59,7 @@ let dailyTotals = {}; // Store daily totals by date
 let performanceChart = null; // Chart.js instance
 const DAILY_TARGET = 2000; // Daily target in rupees
 
-// Notification system
-let notificationQueue = [];
-let notificationTimeout = null;
+// Stock threshold for alerts
 const LOW_STOCK_THRESHOLD = 5; // Alert when stock <= 5
 
 // Authentication functions
@@ -395,6 +393,8 @@ document.getElementById("generatePdf").addEventListener("click", generatePDF);
 document.getElementById("printBtn").addEventListener("click", printBill);
 document.getElementById("whatsappBtn").addEventListener("click", shareOnWhatsApp);
 
+
+
 // Clear Cart button functionality
 document.getElementById("clearBill").addEventListener("click", () => {
   cart = [];
@@ -428,10 +428,10 @@ function completeSale() {
     });
   });
   
-  // Show success notification for sale completion
+  // Log sale completion
   const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
   const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
-  showNotification(`🎉 Sale completed! ${itemCount} items sold for ₹${totalAmount.toLocaleString()}`, 'success', 5000);
+  console.log(`Sale completed! ${itemCount} items sold for ₹${totalAmount.toLocaleString()}`);
   
   updateTransactionDisplay();
   return true;
@@ -660,84 +660,7 @@ function escapeHtml(str) {
   return String(str || "").replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[s]);
 }
 
-// Notification System
-function createNotificationContainer() {
-  if (!document.getElementById('notification-container')) {
-    const container = document.createElement('div');
-    container.id = 'notification-container';
-    container.className = 'notification-container';
-    document.body.appendChild(container);
-  }
-}
-
-function showNotification(message, type = 'info', duration = 5000) {
-  createNotificationContainer();
-  
-  const notification = document.createElement('div');
-  const notificationId = 'notification-' + Date.now();
-  notification.id = notificationId;
-  notification.className = `notification notification-${type}`;
-  
-  const iconMap = {
-    'success': '✅',
-    'error': '❌',
-    'warning': '⚠️',
-    'info': 'ℹ️',
-    'low-stock': '📦'
-  };
-  
-  notification.innerHTML = `
-    <div class="notification-content">
-      <div class="notification-icon">${iconMap[type] || iconMap.info}</div>
-      <div class="notification-message">${escapeHtml(message)}</div>
-      <button class="notification-close" onclick="closeNotification('${notificationId}')">&times;</button>
-    </div>
-    <div class="notification-progress"></div>
-  `;
-  
-  const container = document.getElementById('notification-container');
-  container.appendChild(notification);
-  
-  // Trigger animation
-  setTimeout(() => {
-    notification.classList.add('notification-show');
-  }, 100);
-  
-  // Auto-hide notification
-  if (duration > 0) {
-    const progressBar = notification.querySelector('.notification-progress');
-    progressBar.style.animationDuration = `${duration}ms`;
-    
-    setTimeout(() => {
-      closeNotification(notificationId);
-    }, duration);
-  }
-  
-  return notificationId;
-}
-
-function closeNotification(notificationId) {
-  const notification = document.getElementById(notificationId);
-  if (notification) {
-    notification.classList.add('notification-hide');
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
-      }
-    }, 300);
-  }
-}
-
-function showLowStockNotification(productName, currentStock) {
-  const message = `Low Stock Alert: ${productName} has only ${currentStock} items left!`;
-  return showNotification(message, 'low-stock', 7000);
-}
-
-function showOutOfStockNotification(productName) {
-  const message = `Out of Stock: ${productName} is completely out of stock!`;
-  return showNotification(message, 'error', 8000);
-}
-
+// Simple stock checking function for console logging
 function checkLowStockAlerts() {
   const lowStockProducts = [];
   const outOfStockProducts = [];
@@ -751,21 +674,19 @@ function checkLowStockAlerts() {
     }
   });
   
-  // Show notifications for low stock items
+  // Log alerts to console instead of showing notifications
   lowStockProducts.forEach(product => {
-    showLowStockNotification(product.name, product.stock);
+    console.log(`Low Stock Alert: ${product.name} has only ${product.stock} items left!`);
   });
   
-  // Show notifications for out of stock items
   outOfStockProducts.forEach(product => {
-    showOutOfStockNotification(product.name);
+    console.log(`Out of Stock: ${product.name} is completely out of stock!`);
   });
   
   return { lowStock: lowStockProducts.length, outOfStock: outOfStockProducts.length };
 }
 
 // Global functions
-window.closeNotification = closeNotification;
 window.checkLowStockAlerts = checkLowStockAlerts;
 
 // Transaction Management Functions
