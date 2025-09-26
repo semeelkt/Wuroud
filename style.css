@@ -201,6 +201,7 @@
   gap: 0;
   max-width: 1200px;
   margin: 0 auto;
+  justify-content: center;
 }
 
 .nav-tab {
@@ -216,12 +217,10 @@
   color: #6c757d;
   border-bottom: 3px solid transparent;
   transition: all 0.3s ease;
-  min-width: 140px;
-  justify-content: center;
+  position: relative;
 }
 
 .nav-tab:hover {
-  background: rgba(123, 31, 162, 0.05);
   color: #7b1fa2;
 }
 
@@ -233,6 +232,22 @@
 
 .nav-icon {
   font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-icon svg {
+  color: #6c757d;
+  transition: all 0.3s ease;
+}
+
+.nav-tab.active .nav-icon svg {
+  color: #7b1fa2;
+}
+
+.nav-tab:hover .nav-icon svg {
+  color: #343a40;
 }
 
 .nav-text {
@@ -764,19 +779,209 @@ body{
 /* search area */
 .search-area{
   display:flex;
-  gap:10px;
+  gap:12px;
   align-items:center;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 16px 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  border: 1px solid rgba(255,255,255,0.8);
 }
 .search-area input, .search-area select{
-  padding:10px 12px;
-  border-radius:8px;
-  border:1px solid #e6e7e8;
+  padding:12px 16px;
+  border-radius:10px;
+  border:2px solid #e1e5e9;
   background:white;
-  min-width:150px;
+  min-width:160px;
+  font-size:14px;
+  font-weight:500;
+  color:#495057;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
+.search-area input:focus, .search-area select:focus {
+  outline: none;
+  border-color: #7b1fa2;
+  box-shadow: 0 0 0 3px rgba(123, 31, 162, 0.1), 0 4px 16px rgba(0,0,0,0.1);
+  transform: translateY(-1px);
+}
+
+.search-area input:hover, .search-area select:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.search-area input::placeholder {
+  color: #6c757d;
+  font-weight: 400;
+}
+
+.search-area select {
+  cursor: pointer;
+  appearance: none;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%237b1fa2' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 14px center;
+  background-repeat: no-repeat;
+  background-size: 20px;
+  padding-right: 45px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(123, 31, 162, 0.1);
+  border: 2px solid #e1e5e9;
+}
+
+.search-area select:hover {
+  background: linear-gradient(135deg, #ffffff 0%, #f1f3f4 100%);
+  box-shadow: 0 6px 20px rgba(123, 31, 162, 0.15);
+  transform: translateY(-1px);
+}
+
+.search-area select:focus {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  box-shadow: 0 0 0 4px rgba(123, 31, 162, 0.1), 0 8px 25px rgba(123, 31, 162, 0.2);
+  transform: translateY(-2px);
+}
+
 .search-area .ghost{
-  border:1px solid #ddd;
-  background:transparent;
+  border:2px solid #dee2e6;
+  background:rgba(255,255,255,0.8);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+/* Modern dropdown options with enhanced styling */
+.search-area select option {
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+  color: #2d3748;
+  font-weight: 500;
+  border: none;
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0.2px;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  line-height: 1.5;
+}
+
+.search-area select option:hover {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  transform: translateX(4px);
+  padding-left: 28px;
+  box-shadow: inset 4px 0 0 rgba(255,255,255,0.3);
+}
+
+.search-area select option:checked,
+.search-area select option:selected {
+  background: linear-gradient(135deg, #7b1fa2 0%, #9c27b0 100%);
+  color: white;
+  font-weight: 600;
+  position: relative;
+}
+
+.search-area select option:checked::before,
+.search-area select option:selected::before {
+  content: "✓";
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: bold;
+  font-size: 16px;
+  animation: checkmark 0.3s ease-in-out;
+}
+
+@keyframes checkmark {
+  0% { opacity: 0; transform: translateY(-50%) scale(0.5); }
+  100% { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+.search-area select option:checked::before,
+.search-area select option:selected::before {
+  content: "✓";
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: bold;
+  font-size: 16px;
+  animation: checkmark 0.3s ease-in-out;
+}
+
+@keyframes checkmark {
+  0% { opacity: 0; transform: translateY(-50%) scale(0.5); }
+  100% { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+.search-area select option:first-child {
+  font-weight: 600;
+  background: linear-gradient(135deg, #f0f8ff 0%, #e8f4fd 100%);
+  color: #7b1fa2;
+  border-bottom: 2px solid #e1e5e9;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 14px 24px;
+}
+
+.search-area select option:first-child:hover {
+  background: linear-gradient(135deg, #7b1fa2 0%, #9c27b0 100%);
+  color: white;
+  transform: none;
+  padding-left: 24px;
+}
+
+.search-area select option:not(:first-child) {
+  position: relative;
+}
+
+.search-area select option:not(:first-child):before {
+  margin-right: 8px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* Category-specific icons and styling */
+.search-area select option[value="Footwear"]:before {
+  content: "�";
+}
+
+.search-area select option[value="Fancy"]:before {
+  content: "✨";
+}
+
+.search-area select option[value="Toys"]:before {
+  content: "🧸";
+}
+
+.search-area select option[value="Stationery"]:before {
+  content: "📝";
+}
+
+/* Special styling for different categories */
+.search-area select option[value="Footwear"]:hover {
+  background: linear-gradient(135deg, #2196f3 0%, #21cbf3 100%);
+}
+
+.search-area select option[value="Fancy"]:hover {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
+}
+
+.search-area select option[value="Toys"]:hover {
+  background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
+}
+
+.search-area select option[value="Stationery"]:hover {
+  background: linear-gradient(135deg, #9c27b0 0%, #673ab7 100%);
+  box-shadow: inset 4px 0 0 rgba(255,255,255,0.3);
+}
+
+/* Icon hover animation */
+.search-area select option:hover:before {
+  transform: scale(1.2) rotate(5deg);
+  opacity: 1;
 }
 
 /* layout */
