@@ -4,6 +4,9 @@
   <!-- jsPDF for PDF generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  
+  <!-- Chart.js for profit/loss graph -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Wuroud — Admin / Billing</title>
@@ -120,6 +123,46 @@
           </div>
           <div id="monthTransactionsList" class="transaction-list">
             <!-- Daily summaries will be populated here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Profit/Loss Chart Section -->
+      <div class="card performance-card">
+        <div class="performance-header">
+          <h3>Daily Performance</h3>
+          <div class="performance-stats">
+            <div class="stat-item">
+              <span class="stat-label">Target:</span>
+              <span class="stat-value target">₹2,000</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Today:</span>
+              <span id="todayPerformance" class="stat-value today">₹0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Status:</span>
+              <span id="performanceStatus" class="stat-value status neutral">On Track</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="chart-container">
+          <canvas id="performanceChart" width="400" height="200"></canvas>
+        </div>
+        
+        <div class="chart-legend">
+          <div class="legend-item">
+            <span class="legend-color profit"></span>
+            <span class="legend-text">Profit (Above ₹2,000)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color loss"></span>
+            <span class="legend-text">Loss (Below ₹2,000)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color target-line"></span>
+            <span class="legend-text">Target Line (₹2,000)</span>
           </div>
         </div>
       </div>

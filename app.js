@@ -72,6 +72,8 @@ let cart = []; // Cart items
 let products = []; // Snapshot cache
 let transactions = []; // Today's transactions
 let dailyTotals = {}; // Store daily totals by date
+let performanceChart = null; // Chart.js instance
+const DAILY_TARGET = 2000; // Daily target in rupees
 
 // Authentication functions
 document.getElementById("loginBtn").addEventListener("click", async () => {
@@ -603,6 +605,8 @@ function getMonthTotal() {
 function updateTransactionDisplay() {
   updateTodayTransactions();
   updateMonthTransactions();
+  updatePerformanceStats();
+  updatePerformanceChart();
 }
 
 function updateTodayTransactions() {
@@ -676,6 +680,11 @@ document.addEventListener('DOMContentLoaded', function() {
   loadTransactionsFromStorage();
   updateTransactionDisplay();
   
+  // Initialize performance chart
+  setTimeout(() => {
+    initializePerformanceChart();
+  }, 100); // Small delay to ensure DOM is fully rendered
+  
   // Tab switching
   document.getElementById('todayTab').addEventListener('click', function() {
     showTransactionTab('today');
@@ -702,5 +711,172 @@ function showTransactionTab(tab) {
     todayTab.classList.remove('active');
     monthContent.classList.remove('hidden');
     todayContent.classList.add('hidden');
+  }
+}
+
+// Performance Chart Functions
+function initializePerformanceChart() {
+  const ctx = document.getElementById('performanceChart');
+  if (!ctx) return;
+
+  // Get last 7 days data for the chart
+  const chartData = getLast7DaysData();
+  
+  performanceChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: chartData.labels,
+      datasets: [{
+        label: 'Daily Revenue',
+        data: chartData.values,
+        backgroundColor: chartData.colors,
+        borderColor: chartData.borderColors,
+        borderWidth: 2,
+        borderRadius: 4,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          titleColor: '#fff',
+          bodyColor: '#fff',
+          borderColor: '#ddd',
+          borderWidth: 1,
+          callbacks: {
+            label: function(context) {
+              const value = context.parsed.y;
+              const status = value >= DAILY_TARGET ? 'Profit' : 'Loss';
+              const difference = Math.abs(value - DAILY_TARGET);
+              return [
+                `Revenue: ₹${value.toLocaleString()}`,
+                `${status}: ₹${difference.toLocaleString()}`
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return '₹' + value.toLocaleString();
+            }
+          },
+          grid: {
+            color: 'rgba(0, 0, 0, 0.1)'
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          }
+        }
+      },
+      animation: {
+        duration: 800,
+        easing: 'easeInOutQuart'
+      }
+    },
+    plugins: [{
+      id: 'targetLine',
+      afterDraw: function(chart) {
+        const ctx = chart.ctx;
+        const yAxis = chart.scales.y;
+        const targetY = yAxis.getPixelForValue(DAILY_TARGET);
+        
+        ctx.save();
+        ctx.strokeStyle = '#ff6b6b';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(chart.chartArea.left, targetY);
+        ctx.lineTo(chart.chartArea.right, targetY);
+        ctx.stroke();
+        ctx.restore();
+        
+        // Add target label
+        ctx.save();
+        ctx.fillStyle = '#ff6b6b';
+        ctx.font = '12px Inter, sans-serif';
+        ctx.fillText('Target: ₹2,000', chart.chartArea.right - 100, targetY - 8);
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+function getLast7DaysData() {
+  const days = [];
+  const values = [];
+  const colors = [];
+  const borderColors = [];
+  
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateString = getDateString(date);
+    
+    // Format day label
+    const dayLabel = i === 0 ? 'Today' : 
+                    i === 1 ? 'Yesterday' : 
+                    date.toLocaleDateString('en-US', { weekday: 'short' });
+    
+    days.push(dayLabel);
+    
+    // Get revenue for this day
+    const revenue = i === 0 ? getTodayTotal() : (dailyTotals[dateString] || 0);
+    values.push(revenue);
+    
+    // Set colors based on profit/loss
+    if (revenue >= DAILY_TARGET) {
+      colors.push('rgba(46, 213, 115, 0.8)'); // Green for profit
+      borderColors.push('rgba(46, 213, 115, 1)');
+    } else {
+      colors.push('rgba(255, 107, 107, 0.8)'); // Red for loss
+      borderColors.push('rgba(255, 107, 107, 1)');
+    }
+  }
+  
+  return { labels: days, values, colors, borderColors };
+}
+
+function updatePerformanceChart() {
+  if (!performanceChart) return;
+  
+  const chartData = getLast7DaysData();
+  performanceChart.data.labels = chartData.labels;
+  performanceChart.data.datasets[0].data = chartData.values;
+  performanceChart.data.datasets[0].backgroundColor = chartData.colors;
+  performanceChart.data.datasets[0].borderColor = chartData.borderColors;
+  performanceChart.update('none'); // No animation for updates
+}
+
+function updatePerformanceStats() {
+  const todayTotal = getTodayTotal();
+  const todayPerformanceEl = document.getElementById('todayPerformance');
+  const performanceStatusEl = document.getElementById('performanceStatus');
+  
+  if (todayPerformanceEl) {
+    todayPerformanceEl.textContent = `₹${todayTotal.toLocaleString()}`;
+  }
+  
+  if (performanceStatusEl) {
+    if (todayTotal >= DAILY_TARGET) {
+      const profit = todayTotal - DAILY_TARGET;
+      performanceStatusEl.textContent = `Profit +₹${profit.toLocaleString()}`;
+      performanceStatusEl.className = 'stat-value status profit';
+    } else {
+      const loss = DAILY_TARGET - todayTotal;
+      performanceStatusEl.textContent = `Need ₹${loss.toLocaleString()}`;
+      performanceStatusEl.className = 'stat-value status loss';
+    }
   }
 }

@@ -458,6 +458,129 @@ main{display:flex;gap:28px;margin-top:18px}
   margin: 0;
 }
 
+/* PERFORMANCE CHART STYLES */
+.performance-card {
+  margin-top: 0;
+}
+
+.performance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.performance-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+
+.performance-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.stat-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.stat-value {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.stat-value.target {
+  color: #ff6b6b;
+}
+
+.stat-value.today {
+  color: var(--accent);
+}
+
+.stat-value.status.profit {
+  color: #2ed573;
+}
+
+.stat-value.status.loss {
+  color: #ff6b6b;
+}
+
+.stat-value.status.neutral {
+  color: #6c757d;
+}
+
+.chart-container {
+  position: relative;
+  height: 250px;
+  margin-bottom: 16px;
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.legend-color.profit {
+  background: rgba(46, 213, 115, 0.8);
+}
+
+.legend-color.loss {
+  background: rgba(255, 107, 107, 0.8);
+}
+
+.legend-color.target-line {
+  background: linear-gradient(90deg, #ff6b6b 50%, transparent 50%);
+  background-size: 8px 2px;
+}
+
+.legend-text {
+  font-size: 12px;
+  color: #495057;
+  font-weight: 500;
+}
+
 /* GENERAL RESPONSIVE IMPROVEMENTS */
 @media (max-width: 600px) {
   .container {
@@ -600,5 +723,54 @@ main{display:flex;gap:28px;margin-top:18px}
   
   .summary-label, .summary-amount {
     font-size: 13px;
+  }
+  
+  /* Performance chart mobile styles */
+  .performance-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .performance-stats {
+    flex-direction: row;
+    justify-content: space-between;
+    min-width: unset;
+    gap: 6px;
+  }
+  
+  .stat-item {
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 8px;
+    text-align: center;
+    flex: 1;
+  }
+  
+  .stat-label, .stat-value {
+    font-size: 11px;
+  }
+  
+  .chart-container {
+    height: 200px;
+    padding: 12px;
+  }
+  
+  .chart-legend {
+    gap: 12px;
+    padding: 8px;
+  }
+  
+  .legend-item {
+    gap: 4px;
+  }
+  
+  .legend-color {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .legend-text {
+    font-size: 11px;
   }
 }
