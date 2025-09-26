@@ -5,7 +5,7 @@ console.log("app.js is loaded!");
 // Import Firebase SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc, query, orderBy, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc, query, orderBy, enableIndexedDbPersistence, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 // Initialize Firebase
@@ -330,28 +330,34 @@ function populateCategoryFilter() {
 
 // Listen to product changes for the logged-in user
 function loadProducts() {
+  console.log("🔥 Loading products from Firebase...");
   // Show all products in the global collection, ordered by createdAt
   const q = query(productsCol, orderBy("createdAt", "desc"));
   onSnapshot(q, snap => {
+    console.log("📡 Firebase snapshot received, documents count:", snap.size);
     products = [];
     snap.forEach(docSnap => {
       const productData = docSnap.data();
+      console.log("📦 Product loaded:", docSnap.id, productData);
       products.push({ id: docSnap.id, ...productData });
       
-      // Initialize stock from localStorage first, fallback to database value
-      if (productStocks[docSnap.id] === undefined) {
-        if (productData.stock !== undefined) {
-          productStocks[docSnap.id] = productData.stock;
-        } else {
-          productStocks[docSnap.id] = 0; // Default to 0 if no stock specified
-        }
+      // Always use stock from Firebase database
+      if (productData.stock !== undefined) {
+        productStocks[docSnap.id] = productData.stock;
+        console.log(`📊 Stock loaded from Firebase for ${productData.name}: ${productData.stock}`);
+      } else {
+        productStocks[docSnap.id] = 0; // Default to 0 if no stock specified
+        console.log(`⚠️  No stock data in Firebase for ${productData.name}, defaulting to 0`);
       }
     });
-    saveStockData(); // Save any new stock initializations
+    console.log("💾 Final products array:", products.length, "items");
+    console.log("📊 Final productStocks:", productStocks);
     renderProducts();
     populateCategoryFilter();
     populateStockFilters();
     updateStockDisplay();
+  }, error => {
+    console.error("❌ Firebase connection error:", error);
   });
 }
 
@@ -1038,7 +1044,7 @@ onAuthStateChanged(auth, (user) => {
     productGrid.innerHTML = '';
     cart = [];
     transactions = [];
-    productStocks = {};
+    // productStocks will be reloaded from Firebase on next login
     renderCart();
     updateTransactionDisplay();
   }
@@ -1229,31 +1235,59 @@ function updateTransactionSectionDisplay() {
 let productStocks = {}; // Track product stock levels
 
 function initializeStockData() {
-  const savedStocks = localStorage.getItem('wuroud_product_stocks');
-  if (savedStocks) {
-    productStocks = JSON.parse(savedStocks);
-  }
+  console.log("🔍 Initializing stock data from Firebase...");
+  productStocks = {}; // Reset stock data, will be loaded from Firebase
   
   // Check for low stock alerts after initializing stock data
   setTimeout(() => {
     if (products.length > 0) {
+      console.log("📊 Current products count:", products.length);
+      console.log("📊 Current productStocks:", productStocks);
       checkLowStockAlerts();
     }
   }, 3000); // Delay to ensure products are loaded
 }
 
-function saveStockData() {
-  localStorage.setItem('wuroud_product_stocks', JSON.stringify(productStocks));
+// Function to set initial stock for products that don't have stock values
+async function setInitialStockForAllProducts() {
+  console.log("🔄 Setting initial stock for products without stock values...");
+  
+  for (const product of products) {
+    if (product.stock === undefined || product.stock === 0) {
+      try {
+        const productRef = doc(db, "products", product.id);
+        await updateDoc(productRef, {
+          stock: 10 // Set initial stock to 10 items
+        });
+        console.log(`✅ Set initial stock for ${product.name}: 10 items`);
+      } catch (error) {
+        console.error(`❌ Error setting stock for ${product.name}:`, error);
+      }
+    }
+  }
+  
+  console.log("🎉 Initial stock setup completed!");
 }
 
 function getProductStock(productId) {
   return productStocks[productId] || 0;
 }
 
-function updateProductStock(productId, newStock) {
+async function updateProductStock(productId, newStock) {
   const oldStock = productStocks[productId] || 0;
   const updatedStock = Math.max(0, newStock);
   productStocks[productId] = updatedStock;
+  
+  // Save to Firebase
+  try {
+    const productRef = doc(db, "products", productId);
+    await updateDoc(productRef, {
+      stock: updatedStock
+    });
+    console.log(`💾 Stock updated in Firebase for product ${productId}: ${updatedStock}`);
+  } catch (error) {
+    console.error("❌ Error updating stock in Firebase:", error);
+  }
   
   // Check for stock level changes and show notifications
   const product = products.find(p => p.id === productId);
@@ -1261,18 +1295,16 @@ function updateProductStock(productId, newStock) {
     // Stock decreased and now low/out
     if (oldStock > updatedStock) {
       if (updatedStock === 0) {
-        showOutOfStockNotification(product.name);
+        console.log(`❌ ${product.name} is now out of stock!`);
       } else if (updatedStock <= LOW_STOCK_THRESHOLD) {
-        showLowStockNotification(product.name, updatedStock);
+        console.log(`⚠️ ${product.name} is now low stock: ${updatedStock} items`);
       }
     }
     // Stock increased from low/out to good levels
     else if (oldStock <= LOW_STOCK_THRESHOLD && updatedStock > LOW_STOCK_THRESHOLD) {
-      showNotification(`✅ ${product.name} stock replenished successfully! (${updatedStock} items)`, 'success', 4000);
+      console.log(`✅ ${product.name} stock replenished successfully! (${updatedStock} items)`);
     }
   }
-  
-  saveStockData();
   updateStockDisplay();
   // Also re-render product cards to show updated stock
   renderProducts();
