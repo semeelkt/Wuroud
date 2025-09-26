@@ -1,19 +1,3 @@
-// Render a product card for the grid
-function productCardHtml(p) {
-  return `
-    <div class="product-card">
-      <div class="prod-img-wrap">
-        ${p.image ? `<img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" />` : `<div class="no-img">No Image</div>`}
-      </div>
-      <div class="prod-info">
-        <div class="prod-title">${escapeHtml(p.name)}</div>
-        <div class="prod-meta">₹${p.price} | ${escapeHtml(p.category)}</div>
-        <button class="btn add-to-bill" data-id="${p.id}">Add to Bill</button>
-        <button class="btn remove-prod" data-id="${p.id}">Remove</button>
-      </div>
-    </div>
-  `;
-}
 // app.js
 // Requires firebase-config.js to set window.FIREBASE_CONFIG
 console.log("app.js is loaded!");
@@ -156,11 +140,13 @@ function showAuthUI(isLoggedOut) {
 addBtn.addEventListener("click", async () => {
   const name = pName.value.trim();
   const price = Number(pPrice.value);
+  const stock = Number(document.getElementById("pStock").value) || 0;
   const category = pCategoryInput.value;
   const image = pImage.value.trim();
   const user = auth.currentUser;
 
   if (!name || !price) return alert("Please enter product name and price.");
+  if (stock < 0) return alert("Stock quantity cannot be negative.");
 
   if (user) {
     await addDoc(productsCol, {
@@ -168,18 +154,27 @@ addBtn.addEventListener("click", async () => {
       price,
       category,
       image: image || "",
+      stock: stock,
       createdAt: Date.now(),
       userId: user.uid
     });
 
   pName.value = "";
   pPrice.value = "";
+  document.getElementById("pStock").value = "";
   pImage.value = "";
   loadProducts();
   } else {
     alert("Please log in to add products.");
   }
 });
+
+// Populate the category filter dropdown with unique categories from products
+function populateCategoryFilter() {
+  const categories = Array.from(new Set(products.map(p => p.category))).filter(Boolean);
+  categoryFilter.innerHTML = '<option value="all">All Categories</option>' +
+    categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join("");
+}
 
 // Listen to product changes for the logged-in user
 function loadProducts() {
@@ -188,16 +183,23 @@ function loadProducts() {
   onSnapshot(q, snap => {
     products = [];
     snap.forEach(docSnap => {
-      products.push({ id: docSnap.id, ...docSnap.data() });
+      const productData = docSnap.data();
+      products.push({ id: docSnap.id, ...productData });
+      
+      // Initialize stock from localStorage first, fallback to database value
+      if (productStocks[docSnap.id] === undefined) {
+        if (productData.stock !== undefined) {
+          productStocks[docSnap.id] = productData.stock;
+        } else {
+          productStocks[docSnap.id] = 0; // Default to 0 if no stock specified
+        }
+      }
     });
-  renderProducts();
-  populateCategoryFilter();
-// Populate the category filter dropdown with unique categories from products
-function populateCategoryFilter() {
-  const categories = Array.from(new Set(products.map(p => p.category))).filter(Boolean);
-  categoryFilter.innerHTML = '<option value="all">All Categories</option>' +
-    categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join("");
-}
+    saveStockData(); // Save any new stock initializations
+    renderProducts();
+    populateCategoryFilter();
+    populateStockFilters();
+    updateStockDisplay();
   });
 }
 
@@ -245,8 +247,25 @@ function attachProductCardListeners() {
       }
     };
   });
+}
+
 // Render a product card for the grid
 function productCardHtml(p) {
+  const stock = getProductStock(p.id);
+  const isOutOfStock = stock <= 0;
+  const isLowStock = stock > 0 && stock <= 5;
+  
+  let stockClass = 'stock-normal';
+  let stockText = `Stock: ${stock}`;
+  
+  if (isOutOfStock) {
+    stockClass = 'stock-out';
+    stockText = 'Out of Stock';
+  } else if (isLowStock) {
+    stockClass = 'stock-low';
+    stockText = `Low Stock: ${stock}`;
+  }
+  
   return `
     <div class="product-card">
       <div class="prod-img-wrap">
@@ -255,24 +274,36 @@ function productCardHtml(p) {
       <div class="prod-info">
         <div class="prod-title">${escapeHtml(p.name)}</div>
         <div class="prod-meta">₹${p.price} | ${escapeHtml(p.category)}</div>
-        <button class="btn add-to-bill" data-id="${p.id}">Add to Bill</button>
+        <div class="prod-stock ${stockClass}">${stockText}</div>
+        <button class="btn add-to-bill" data-id="${p.id}" ${isOutOfStock ? 'disabled' : ''}>
+          ${isOutOfStock ? 'Out of Stock' : 'Add to Bill'}
+        </button>
         <button class="btn remove-prod" data-id="${p.id}">Remove</button>
       </div>
     </div>
   `;
 }
-}
 
-// Add product to cart and track transaction
+// Add product to cart (don't decrease stock until bill is completed)
 function addToCart(product) {
-  const found = cart.find(c => c.id === product.id);
-  if (found) found.qty += 1;
-  else cart.push({ id: product.id, name: product.name, price: product.price, qty: 1 });
+  // Check if we can add this item (considering what's already in cart)
+  const currentStock = getProductStock(product.id);
+  const cartItem = cart.find(c => c.id === product.id);
+  const cartQuantity = cartItem ? cartItem.qty : 0;
   
-  // Track transaction
-  addTransaction(product);
+  if (currentStock <= cartQuantity) {
+    alert(`Sorry, only ${currentStock} ${product.name} available in stock!`);
+    return;
+  }
+  
+  const found = cart.find(c => c.id === product.id);
+  if (found) {
+    found.qty += 1;
+  } else {
+    cart.push({ id: product.id, name: product.name, price: product.price, qty: 1 });
+  }
+  
   renderCart();
-  updateTransactionDisplay();
 }
 
 // Add transaction to today's records
@@ -300,7 +331,7 @@ function renderCart() {
       <tr data-id="${item.id}">
         <td>${item.name}</td>
         <td>
-          <input type="number" class="qty-input" value="${item.qty}" min="1" />
+          <input type="number" class="qty-input" value="${item.qty}" min="1" data-item-id="${item.id}" />
         </td>
         <td>₹${item.price}</td>
         <td>₹${sub}</td>
@@ -320,6 +351,30 @@ function renderCart() {
       }
     };
   });
+  
+  // Attach quantity change listeners
+  document.querySelectorAll('.qty-input').forEach(input => {
+    input.addEventListener('change', function() {
+      const itemId = this.getAttribute('data-item-id');
+      const newQty = Number(this.value) || 1;
+      const cartItem = cart.find(item => item.id === itemId);
+      
+      if (cartItem) {
+        const currentStock = getProductStock(itemId);
+        
+        // Check if we have enough stock for the new quantity
+        if (newQty > currentStock) {
+          alert(`Only ${currentStock} items available in stock!`);
+          this.value = cartItem.qty;
+          return;
+        }
+        
+        cartItem.qty = newQty;
+        updateTotal();
+      }
+    });
+  });
+  
   // Update total
   updateTotal();
 }
@@ -341,7 +396,41 @@ document.getElementById("clearBill").addEventListener("click", () => {
   renderCart();
 });
 
+// Complete the sale and decrease stock
+function completeSale() {
+  if (cart.length === 0) {
+    alert('Cart is empty!');
+    return false;
+  }
+  
+  // Check stock availability for all items
+  for (let item of cart) {
+    const currentStock = getProductStock(item.id);
+    if (currentStock < item.qty) {
+      alert(`Insufficient stock for ${item.name}. Available: ${currentStock}, Required: ${item.qty}`);
+      return false;
+    }
+  }
+  
+  // Decrease stock for all items
+  cart.forEach(item => {
+    decreaseStock(item.id, item.qty);
+    // Track transaction
+    addTransaction({
+      id: item.id,
+      name: item.name,
+      price: item.price
+    });
+  });
+  
+  updateTransactionDisplay();
+  return true;
+}
+
 function generatePDF() {
+  // Complete the sale first
+  if (!completeSale()) return;
+  
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -411,15 +500,26 @@ function generatePDF() {
   doc.text('Thank you for shopping with Wuroud!', pageWidth/2, finalY+80, { align: 'center' });
 
   doc.save(`Wuroud-bill-${Date.now()}.pdf`);
+  
+  // Clear cart after successful PDF generation
+  cart = [];
+  renderCart();
 }
 
 function printBill() {
+  // Complete the sale first
+  if (!completeSale()) return;
+  
   const w = window.open("", "_blank");
   const html = printableHtml();
   w.document.write(html);
   w.document.close();
   w.focus();
   w.print();
+  
+  // Clear cart after successful print
+  cart = [];
+  renderCart();
 }
 
 function printableHtml() {
@@ -524,6 +624,9 @@ function printableHtml() {
 
 function shareOnWhatsApp() {
   if (cart.length === 0) return alert("Cart empty");
+  
+  // Complete the sale first
+  if (!completeSale()) return;
   const phone = document.getElementById("custMobile").value.trim();
   let message = `*Wuroud Bill*%0A`;
 
@@ -536,6 +639,10 @@ function shareOnWhatsApp() {
   const url = phone ? `https://wa.me/${phone}?text=${message}` : `https://wa.me/?text=${message}`;
 
   window.open(url, '_blank');
+  
+  // Clear cart after successful WhatsApp share
+  cart = [];
+  renderCart();
 }
 
 // Helper function to escape HTML characters
@@ -608,6 +715,15 @@ function cleanupOldTransactions() {
 }
 
 function removeTransaction(transactionId) {
+  // Find the transaction to get product info before removing it
+  const transaction = transactions.find(t => t.id === transactionId);
+  
+  if (transaction && transaction.productId) {
+    // Restore stock by increasing it by 1 (since each transaction represents 1 item sold)
+    increaseStock(transaction.productId, 1);
+  }
+  
+  // Remove the transaction
   transactions = transactions.filter(t => t.id !== transactionId);
   saveTransactionsToStorage();
   updateTransactionDisplay();
@@ -706,9 +822,15 @@ onAuthStateChanged(auth, (user) => {
     // User is signed in
     console.log("User is logged in:", user.email);
     showAuthUI(false);
+    initializeStockData(); // Initialize stock data
     loadProducts();
     loadTransactionsFromStorage();
     updateTransactionDisplay();
+    // Force re-render after stock initialization
+    setTimeout(() => {
+      renderProducts();
+      updateStockDisplay();
+    }, 100);
   } else {
     // User is signed out
     console.log("User is logged out");
@@ -716,6 +838,7 @@ onAuthStateChanged(auth, (user) => {
     productGrid.innerHTML = '';
     cart = [];
     transactions = [];
+    productStocks = {};
     renderCart();
     updateTransactionDisplay();
   }
@@ -728,15 +851,309 @@ document.addEventListener('DOMContentLoaded', function() {
     initializePerformanceChart();
   }, 100); // Small delay to ensure DOM is fully rendered
   
-  // Tab switching
-  document.getElementById('todayTab').addEventListener('click', function() {
-    showTransactionTab('today');
+  // Main navigation tabs
+  const billingTab = document.getElementById('billingTab');
+  const transactionsTab = document.getElementById('transactionsTab');
+  const stockTab = document.getElementById('stockTab');
+  
+  if (billingTab) billingTab.addEventListener('click', () => showMainSection('billing'));
+  if (transactionsTab) transactionsTab.addEventListener('click', () => showMainSection('transactions'));
+  if (stockTab) stockTab.addEventListener('click', () => showMainSection('stock'));
+  
+  // Transaction sub-tabs
+  const todayTransactionTab = document.getElementById('todayTransactionTab');
+  const monthTransactionTab = document.getElementById('monthTransactionTab');
+  
+  if (todayTransactionTab) {
+    todayTransactionTab.addEventListener('click', function() {
+      showTransactionSubTab('today');
+    });
+  }
+  
+  if (monthTransactionTab) {
+    monthTransactionTab.addEventListener('click', function() {
+      showTransactionSubTab('month');
+    });
+  }
+  
+  // Legacy transaction tabs (for billing section)
+  const todayTab = document.getElementById('todayTab');
+  const monthTab = document.getElementById('monthTab');
+  
+  if (todayTab) {
+    todayTab.addEventListener('click', function() {
+      showTransactionTab('today');
+    });
+  }
+  
+  if (monthTab) {
+    monthTab.addEventListener('click', function() {
+      showTransactionTab('month');
+    });
+  }
+  
+  // Stock filters
+  const stockCategoryFilter = document.getElementById('stockCategoryFilter');
+  const stockStatusFilter = document.getElementById('stockStatusFilter');
+  
+  if (stockCategoryFilter) stockCategoryFilter.addEventListener('change', updateStockDisplay);
+  if (stockStatusFilter) stockStatusFilter.addEventListener('change', updateStockDisplay);
+});
+
+// Main section switching function
+function showMainSection(section) {
+  // Hide all sections
+  document.querySelectorAll('.main-section').forEach(sec => {
+    sec.classList.remove('active');
   });
   
-  document.getElementById('monthTab').addEventListener('click', function() {
-    showTransactionTab('month');
+  // Remove active class from all nav tabs
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.classList.remove('active');
   });
-});
+  
+  // Show selected section
+  const sectionElement = document.getElementById(section + 'Section');
+  const tabElement = document.getElementById(section + 'Tab');
+  
+  if (sectionElement) sectionElement.classList.add('active');
+  if (tabElement) tabElement.classList.add('active');
+  
+  // Update content based on section
+  if (section === 'stock') {
+    updateStockDisplay();
+    populateStockFilters();
+  } else if (section === 'transactions') {
+    updateTransactionSectionDisplay();
+  }
+}
+
+// Transaction section sub-tab switching
+function showTransactionSubTab(tab) {
+  const todayTab = document.getElementById('todayTransactionTab');
+  const monthTab = document.getElementById('monthTransactionTab');
+  const todayView = document.getElementById('todayTransactionView');
+  const monthView = document.getElementById('monthTransactionView');
+  
+  if (tab === 'today') {
+    if (todayTab) todayTab.classList.add('active');
+    if (monthTab) monthTab.classList.remove('active');
+    if (todayView) todayView.classList.remove('hidden');
+    if (monthView) monthView.classList.add('hidden');
+  } else {
+    if (monthTab) monthTab.classList.add('active');
+    if (todayTab) todayTab.classList.remove('active');
+    if (monthView) monthView.classList.remove('hidden');
+    if (todayView) todayView.classList.add('hidden');
+  }
+}
+
+// Update transaction section display
+function updateTransactionSectionDisplay() {
+  // Update today's data
+  const todayRevenue = document.getElementById('todayRevenue');
+  const todayItemCount = document.getElementById('todayItemCount');
+  const todayDetails = document.getElementById('todayTransactionDetails');
+  
+  if (todayRevenue) todayRevenue.textContent = `₹${getTodayTotal().toLocaleString()}`;
+  if (todayItemCount) todayItemCount.textContent = transactions.filter(t => t.date === getTodayString()).length.toString();
+  
+  const todaysTransactions = transactions.filter(t => t.date === getTodayString());
+  if (todayDetails) {
+    if (todaysTransactions.length === 0) {
+      todayDetails.innerHTML = '<p class="no-data">No transactions today</p>';
+    } else {
+      todayDetails.innerHTML = todaysTransactions.map(t => `
+        <div class="transaction-item">
+          <div class="transaction-info">
+            <span class="transaction-product">${escapeHtml(t.productName)}</span>
+            <span class="transaction-time">${new Date(t.timestamp).toLocaleTimeString()}</span>
+          </div>
+          <div class="transaction-amount">₹${t.price.toLocaleString()}</div>
+        </div>
+      `).join('');
+    }
+  }
+  
+  // Update month's data
+  const monthRevenue = document.getElementById('monthRevenue');
+  const monthItemCount = document.getElementById('monthItemCount');
+  const monthDetails = document.getElementById('monthTransactionDetails');
+  
+  const totalRevenue = getMonthTotal();
+  const totalItems = transactions.length + Object.keys(dailyTotals).length;
+  
+  if (monthRevenue) monthRevenue.textContent = `₹${totalRevenue.toLocaleString()}`;
+  if (monthItemCount) monthItemCount.textContent = totalItems.toString();
+  
+  if (monthDetails) {
+    // Show daily summaries for the month
+    const last30Days = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      last30Days.push(getDateString(date));
+    }
+    
+    const monthHtml = last30Days.map(date => {
+      const isToday = date === getTodayString();
+      const total = isToday ? getTodayTotal() : (dailyTotals[date] || 0);
+      
+      if (total === 0) return '';
+      
+      return `
+        <div class="daily-summary-item">
+          <div class="daily-date">
+            ${isToday ? 'Today' : new Date(date).toLocaleDateString()}
+          </div>
+          <div class="daily-amount">₹${total.toLocaleString()}</div>
+        </div>
+      `;
+    }).filter(html => html !== '').join('');
+    
+    monthDetails.innerHTML = monthHtml || '<p class="no-data">No transactions this month</p>';
+  }
+}
+
+// Stock management functions
+let productStocks = {}; // Track product stock levels
+
+function initializeStockData() {
+  const savedStocks = localStorage.getItem('wuroud_product_stocks');
+  if (savedStocks) {
+    productStocks = JSON.parse(savedStocks);
+  }
+}
+
+function saveStockData() {
+  localStorage.setItem('wuroud_product_stocks', JSON.stringify(productStocks));
+}
+
+function getProductStock(productId) {
+  return productStocks[productId] || 0;
+}
+
+function updateProductStock(productId, newStock) {
+  productStocks[productId] = Math.max(0, newStock);
+  saveStockData();
+  updateStockDisplay();
+  // Also re-render product cards to show updated stock
+  renderProducts();
+}
+
+function decreaseStock(productId, quantity = 1) {
+  const currentStock = getProductStock(productId);
+  updateProductStock(productId, currentStock - quantity);
+}
+
+function increaseStock(productId, quantity = 1) {
+  const currentStock = getProductStock(productId);
+  updateProductStock(productId, currentStock + quantity);
+}
+
+function populateStockFilters() {
+  const categoryFilter = document.getElementById('stockCategoryFilter');
+  if (!categoryFilter) return;
+  
+  const categories = Array.from(new Set(products.map(p => p.category))).filter(Boolean);
+  categoryFilter.innerHTML = '<option value="all">All Categories</option>' +
+    categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join("");
+}
+
+function updateStockDisplay() {
+  const stockTableBody = document.querySelector('#stockTable tbody');
+  const totalProductsEl = document.getElementById('totalProducts');
+  const lowStockCountEl = document.getElementById('lowStockCount');
+  const outOfStockCountEl = document.getElementById('outOfStockCount');
+  
+  if (!stockTableBody) return;
+  
+  // Get filter values
+  const categoryFilter = document.getElementById('stockCategoryFilter')?.value || 'all';
+  const statusFilter = document.getElementById('stockStatusFilter')?.value || 'all';
+  
+  // Filter products
+  let filteredProducts = products.filter(product => {
+    const categoryMatch = categoryFilter === 'all' || product.category === categoryFilter;
+    const stock = getProductStock(product.id);
+    let statusMatch = true;
+    
+    if (statusFilter === 'low') {
+      statusMatch = stock > 0 && stock <= 5;
+    } else if (statusFilter === 'out') {
+      statusMatch = stock === 0;
+    }
+    
+    return categoryMatch && statusMatch;
+  });
+  
+  // Generate table rows
+  stockTableBody.innerHTML = filteredProducts.map(product => {
+    const stock = getProductStock(product.id);
+    let statusClass = 'in-stock';
+    let statusText = 'In Stock';
+    
+    if (stock === 0) {
+      statusClass = 'out-of-stock';
+      statusText = 'Out of Stock';
+    } else if (stock <= 5) {
+      statusClass = 'low-stock';
+      statusText = 'Low Stock';
+    }
+    
+    return `
+      <tr>
+        <td>
+          <div class="stock-product-info">
+            <div class="stock-product-image">
+              ${product.image ? `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" />` : 'No Image'}
+            </div>
+            <div class="stock-product-details">
+              <div class="stock-product-name">${escapeHtml(product.name)}</div>
+            </div>
+          </div>
+        </td>
+        <td>${escapeHtml(product.category)}</td>
+        <td>₹${product.price.toLocaleString()}</td>
+        <td>
+          <span class="stock-quantity">${stock}</span>
+        </td>
+        <td>
+          <span class="stock-status ${statusClass}">${statusText}</span>
+        </td>
+        <td>
+          <div class="stock-actions">
+            <button class="stock-btn restock" onclick="restockProduct('${product.id}')">
+              Restock
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+  
+  // Update statistics
+  const totalProducts = products.length;
+  const lowStockCount = products.filter(p => {
+    const stock = getProductStock(p.id);
+    return stock > 0 && stock <= 5;
+  }).length;
+  const outOfStockCount = products.filter(p => getProductStock(p.id) === 0).length;
+  
+  if (totalProductsEl) totalProductsEl.textContent = totalProducts;
+  if (lowStockCountEl) lowStockCountEl.textContent = lowStockCount;
+  if (outOfStockCountEl) outOfStockCountEl.textContent = outOfStockCount;
+}
+
+// Global function for restocking (called from HTML)
+window.restockProduct = function(productId) {
+  const quantity = prompt('Enter quantity to add to stock:', '10');
+  if (quantity && !isNaN(quantity) && Number(quantity) > 0) {
+    const currentStock = getProductStock(productId);
+    updateProductStock(productId, currentStock + Number(quantity));
+    alert('Stock updated successfully!');
+  }
+};
 
 function showTransactionTab(tab) {
   const todayTab = document.getElementById('todayTab');
@@ -760,7 +1177,16 @@ function showTransactionTab(tab) {
 // Performance Chart Functions
 function initializePerformanceChart() {
   const ctx = document.getElementById('performanceChart');
-  if (!ctx) return;
+  if (!ctx) {
+    console.log('Performance chart canvas not found');
+    return;
+  }
+
+  // Check if Chart.js is available
+  if (typeof Chart === 'undefined') {
+    console.error('Chart.js library not loaded');
+    return;
+  }
 
   // Get last 7 days data for the chart
   const chartData = getLast7DaysData();

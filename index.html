@@ -42,6 +42,26 @@
         <button id="applyFilter" class="btn ghost">Filter</button>
       </div>
     </div>
+    
+    <!-- Main Navigation Tabs -->
+    <div class="main-navigation">
+      <div class="container">
+        <nav class="nav-tabs">
+          <button id="billingTab" class="nav-tab active" data-section="billing">
+            <span class="nav-icon">🧾</span>
+            <span class="nav-text">Billing</span>
+          </button>
+          <button id="transactionsTab" class="nav-tab" data-section="transactions">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text">Transactions</span>
+          </button>
+          <button id="stockTab" class="nav-tab" data-section="stock">
+            <span class="nav-icon">📦</span>
+            <span class="nav-text">Stock Details</span>
+          </button>
+        </nav>
+      </div>
+    </div>
   </header>
   
   <!-- Authentication Forms -->
@@ -56,12 +76,16 @@
   </div>
 
   <main class="container">
-    <section class="left-col">
+    <!-- Billing Section -->
+    <section id="billingSection" class="main-section active">
+      <div class="section-layout">
+        <div class="left-col">
       <div class="card add-product">
         <h3>Add New Product</h3>
         <input id="pName" placeholder="Product name" />
         <input id="pPrice" type="number" placeholder="Price (₹)" />
-        <select id="pCategoryInput">
+        <input id="pStock" type="number" placeholder="Stock quantity" min="0" />
+        <select id="pCategoryInput" title="Select product category">
           <option value="Footwear">Footwear</option>
           <option value="Fancy">Fancy</option>
           <option value="Toys">Toys</option>
@@ -70,10 +94,10 @@
         <input id="pImage" placeholder="Image URL (optional)" />
         <button id="addProductBtn" class="btn primary">Add Product</button>
       </div>
-      <div id="productGrid" class="grid"></div>
-    </section>
+          <div id="productGrid" class="grid"></div>
+        </div>
 
-    <aside class="right-col">
+        <div class="right-col">
       <div class="card bill-card">
         <h3>Selected Items</h3>
         <input id="custMobile" placeholder="Customer mobile (e.g. 9198XXXXXXXX)" />
@@ -165,8 +189,108 @@
             <span class="legend-text">Target Line (₹2,000)</span>
           </div>
         </div>
+        </div>
       </div>
-    </aside>
+    </section>
+
+    <!-- Transactions Section -->
+    <section id="transactionsSection" class="main-section">
+      <div class="transactions-content">
+        <div class="card transaction-overview">
+          <h2>📊 Transaction Analytics</h2>
+          
+          <div class="transaction-tabs">
+            <button id="todayTransactionTab" class="transaction-tab-btn active">Today</button>
+            <button id="monthTransactionTab" class="transaction-tab-btn">30 Days</button>
+          </div>
+          
+          <div id="todayTransactionView" class="transaction-view">
+            <div class="transaction-summary">
+              <div class="summary-card">
+                <span class="summary-label">Today's Revenue</span>
+                <span id="todayRevenue" class="summary-amount">₹0</span>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">Items Sold</span>
+                <span id="todayItemCount" class="summary-count">0</span>
+              </div>
+            </div>
+            <div id="todayTransactionDetails" class="transaction-details">
+              <p class="no-data">No transactions today</p>
+            </div>
+          </div>
+          
+          <div id="monthTransactionView" class="transaction-view hidden">
+            <div class="transaction-summary">
+              <div class="summary-card">
+                <span class="summary-label">Monthly Revenue</span>
+                <span id="monthRevenue" class="summary-amount">₹0</span>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">Total Items</span>
+                <span id="monthItemCount" class="summary-count">0</span>
+              </div>
+            </div>
+            <div id="monthTransactionDetails" class="transaction-details">
+              <p class="no-data">No transactions this month</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stock Details Section -->
+    <section id="stockSection" class="main-section">
+      <div class="stock-content">
+        <div class="card stock-overview">
+          <h2>📦 Stock Management</h2>
+          
+          <div class="stock-stats">
+            <div class="stat-card">
+              <div class="stat-number" id="totalProducts">0</div>
+              <div class="stat-label">Total Products</div>
+            </div>
+            <div class="stat-card warning">
+              <div class="stat-number" id="lowStockCount">0</div>
+              <div class="stat-label">Low Stock</div>
+            </div>
+            <div class="stat-card danger">
+              <div class="stat-number" id="outOfStockCount">0</div>
+              <div class="stat-label">Out of Stock</div>
+            </div>
+          </div>
+          
+          <div class="stock-filters">
+            <select id="stockCategoryFilter">
+              <option value="all">All Categories</option>
+            </select>
+            <select id="stockStatusFilter">
+              <option value="all">All Status</option>
+              <option value="low">Low Stock</option>
+              <option value="out">Out of Stock</option>
+            </select>
+          </div>
+          
+          <div class="stock-table-container">
+            <table id="stockTable" class="stock-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Category</th>
+                  <th>Price</th>
+                  <th>Stock</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Stock data will be populated here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer class="footer container">
