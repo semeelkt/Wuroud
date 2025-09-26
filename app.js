@@ -70,6 +70,8 @@ const passwordInput = document.getElementById("password");
 // Local state
 let cart = []; // Cart items
 let products = []; // Snapshot cache
+let transactions = []; // Today's transactions
+let dailyTotals = {}; // Store daily totals by date
 
 // Authentication functions
 document.getElementById("loginBtn").addEventListener("click", async () => {
@@ -233,12 +235,32 @@ function productCardHtml(p) {
 }
 }
 
-// Add product to cart
+// Add product to cart and track transaction
 function addToCart(product) {
   const found = cart.find(c => c.id === product.id);
   if (found) found.qty += 1;
   else cart.push({ id: product.id, name: product.name, price: product.price, qty: 1 });
+  
+  // Track transaction
+  addTransaction(product);
   renderCart();
+  updateTransactionDisplay();
+}
+
+// Add transaction to today's records
+function addTransaction(product) {
+  const now = new Date();
+  const transaction = {
+    id: 'txn_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+    productId: product.id,
+    productName: product.name,
+    price: product.price,
+    timestamp: now.toISOString(),
+    date: getDateString(now)
+  };
+  
+  transactions.push(transaction);
+  saveTransactionsToStorage();
 }
 
 // Render the cart
@@ -492,4 +514,185 @@ function shareOnWhatsApp() {
 function escapeHtml(str) {
   return String(str || "").replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[s]);
 }
-Z
+
+// Transaction Management Functions
+function getDateString(date) {
+  return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+}
+
+function getTodayString() {
+  return getDateString(new Date());
+}
+
+function saveTransactionsToStorage() {
+  localStorage.setItem('wuroud_transactions', JSON.stringify(transactions));
+  localStorage.setItem('wuroud_daily_totals', JSON.stringify(dailyTotals));
+}
+
+function loadTransactionsFromStorage() {
+  const savedTransactions = localStorage.getItem('wuroud_transactions');
+  const savedTotals = localStorage.getItem('wuroud_daily_totals');
+  
+  if (savedTransactions) {
+    transactions = JSON.parse(savedTransactions);
+  }
+  if (savedTotals) {
+    dailyTotals = JSON.parse(savedTotals);
+  }
+  
+  // Clean up old transactions (remove items older than today but keep totals)
+  cleanupOldTransactions();
+}
+
+function cleanupOldTransactions() {
+  const today = getTodayString();
+  const todayTransactions = transactions.filter(t => t.date === today);
+  
+  // Calculate total for completed days and save to dailyTotals
+  const groupedByDate = {};
+  transactions.forEach(t => {
+    if (t.date !== today) {
+      if (!groupedByDate[t.date]) groupedByDate[t.date] = 0;
+      groupedByDate[t.date] += t.price;
+    }
+  });
+  
+  // Update dailyTotals
+  Object.keys(groupedByDate).forEach(date => {
+    dailyTotals[date] = groupedByDate[date];
+  });
+  
+  // Keep only today's transactions
+  transactions = todayTransactions;
+  
+  // Keep only last 30 days of daily totals
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const cutoffDate = getDateString(thirtyDaysAgo);
+  
+  Object.keys(dailyTotals).forEach(date => {
+    if (date < cutoffDate) {
+      delete dailyTotals[date];
+    }
+  });
+  
+  saveTransactionsToStorage();
+}
+
+function removeTransaction(transactionId) {
+  transactions = transactions.filter(t => t.id !== transactionId);
+  saveTransactionsToStorage();
+  updateTransactionDisplay();
+}
+
+function getTodayTotal() {
+  return transactions.reduce((total, t) => {
+    if (t.date === getTodayString()) {
+      return total + t.price;
+    }
+    return total;
+  }, 0);
+}
+
+function getMonthTotal() {
+  const todayTotal = getTodayTotal();
+  const dailyTotal = Object.values(dailyTotals).reduce((sum, total) => sum + total, 0);
+  return todayTotal + dailyTotal;
+}
+
+function updateTransactionDisplay() {
+  updateTodayTransactions();
+  updateMonthTransactions();
+}
+
+function updateTodayTransactions() {
+  const todayTransactionsList = document.getElementById('todayTransactionsList');
+  const todayTotal = document.getElementById('todayTotal');
+  
+  const todaysTransactions = transactions.filter(t => t.date === getTodayString());
+  
+  if (todaysTransactions.length === 0) {
+    todayTransactionsList.innerHTML = '<p class="no-transactions">No transactions today</p>';
+  } else {
+    todayTransactionsList.innerHTML = todaysTransactions.map(t => `
+      <div class="transaction-item">
+        <div class="transaction-info">
+          <span class="transaction-product">${escapeHtml(t.productName)}</span>
+          <span class="transaction-time">${new Date(t.timestamp).toLocaleTimeString()}</span>
+        </div>
+        <div class="transaction-amount">₹${t.price}</div>
+        <button class="transaction-remove" onclick="removeTransaction('${t.id}')">×</button>
+      </div>
+    `).join('');
+  }
+  
+  todayTotal.textContent = `₹${getTodayTotal().toLocaleString()}`;
+}
+
+function updateMonthTransactions() {
+  const monthTransactionsList = document.getElementById('monthTransactionsList');
+  const monthTotal = document.getElementById('monthTotal');
+  
+  // Get last 30 days
+  const last30Days = [];
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    last30Days.push(getDateString(date));
+  }
+  
+  const monthHtml = last30Days.map(date => {
+    const isToday = date === getTodayString();
+    const total = isToday ? getTodayTotal() : (dailyTotals[date] || 0);
+    
+    if (total === 0) return '';
+    
+    return `
+      <div class="daily-summary">
+        <div class="daily-date">
+          ${isToday ? 'Today' : new Date(date).toLocaleDateString()}
+          ${isToday ? ` (${transactions.filter(t => t.date === date).length} items)` : ''}
+        </div>
+        <div class="daily-amount">₹${total.toLocaleString()}</div>
+      </div>
+    `;
+  }).filter(html => html !== '').join('');
+  
+  monthTransactionsList.innerHTML = monthHtml || '<p class="no-transactions">No transactions this month</p>';
+  monthTotal.textContent = `₹${getMonthTotal().toLocaleString()}`;
+}
+
+// Tab switching functionality
+document.addEventListener('DOMContentLoaded', function() {
+  // Load saved transactions
+  loadTransactionsFromStorage();
+  updateTransactionDisplay();
+  
+  // Tab switching
+  document.getElementById('todayTab').addEventListener('click', function() {
+    showTransactionTab('today');
+  });
+  
+  document.getElementById('monthTab').addEventListener('click', function() {
+    showTransactionTab('month');
+  });
+});
+
+function showTransactionTab(tab) {
+  const todayTab = document.getElementById('todayTab');
+  const monthTab = document.getElementById('monthTab');
+  const todayContent = document.getElementById('todayTransactions');
+  const monthContent = document.getElementById('monthTransactions');
+  
+  if (tab === 'today') {
+    todayTab.classList.add('active');
+    monthTab.classList.remove('active');
+    todayContent.classList.remove('hidden');
+    monthContent.classList.add('hidden');
+  } else {
+    monthTab.classList.add('active');
+    todayTab.classList.remove('active');
+    monthContent.classList.remove('hidden');
+    todayContent.classList.add('hidden');
+  }
+}

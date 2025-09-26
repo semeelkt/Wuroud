@@ -92,6 +92,37 @@
           <button id="clearBill" class="btn danger">Clear Cart</button>
         </div>
       </div>
+
+      <!-- Transaction History Section -->
+      <div class="card transaction-card">
+        <div class="transaction-header">
+          <h3>Transaction History</h3>
+          <div class="transaction-tabs">
+            <button id="todayTab" class="tab-btn active">Today</button>
+            <button id="monthTab" class="tab-btn">30 Days</button>
+          </div>
+        </div>
+        
+        <div id="todayTransactions" class="transaction-content">
+          <div class="transaction-summary">
+            <span class="summary-label">Today's Total:</span>
+            <span id="todayTotal" class="summary-amount">₹0</span>
+          </div>
+          <div id="todayTransactionsList" class="transaction-list">
+            <p class="no-transactions">No transactions today</p>
+          </div>
+        </div>
+
+        <div id="monthTransactions" class="transaction-content hidden">
+          <div class="transaction-summary">
+            <span class="summary-label">This Month:</span>
+            <span id="monthTotal" class="summary-amount">₹0</span>
+          </div>
+          <div id="monthTransactionsList" class="transaction-list">
+            <!-- Daily summaries will be populated here -->
+          </div>
+        </div>
+      </div>
     </aside>
   </main>
 
