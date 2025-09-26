@@ -142,119 +142,123 @@
         </div>
       </div>
 
-      <!-- Profit/Loss Chart Section -->
-      <div class="card performance-card">
-        <div class="performance-header">
-          <h3>Daily Performance</h3>
-          <div class="performance-stats">
-            <div class="stat-item">
-              <span class="stat-label">Target:</span>
-              <span class="stat-value target">₹2,000</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Today:</span>
-              <span id="todayPerformance" class="stat-value today">₹0</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Status:</span>
-              <span id="performanceStatus" class="stat-value status neutral">On Track</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="chart-container">
-          <canvas id="performanceChart" width="400" height="200"></canvas>
-        </div>
-        
-        <div class="chart-legend">
-          <div class="legend-item">
-            <span class="legend-color profit"></span>
-            <span class="legend-text">Profit (Above ₹2,000)</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-color loss"></span>
-            <span class="legend-text">Loss (Below ₹2,000)</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-color target-line"></span>
-            <span class="legend-text">Target Line (₹2,000)</span>
-          </div>
-        </div>
-        </div>
-      </div>
     </section>
 
     <!-- Transactions Section -->
     <section id="transactionsSection" class="main-section">
-      <div class="transactions-content">
-        <!-- Transaction History Section -->
-        <div class="card transaction-card">
-          <div class="transaction-header">
-            <h3>📋 Transaction History</h3>
-            <div class="transaction-tabs">
-              <button id="todayTab" class="tab-btn active">Today</button>
-              <button id="monthTab" class="tab-btn">30 Days</button>
+      <div class="section-layout">
+        <div class="left-col">
+          <!-- Transaction History Section -->
+          <div class="card transaction-card">
+            <div class="transaction-header">
+              <h3>📋 Transaction History</h3>
+              <div class="transaction-tabs">
+                <button id="todayTab" class="tab-btn active">Today</button>
+                <button id="monthTab" class="tab-btn">30 Days</button>
+              </div>
             </div>
-          </div>
-          
-          <div id="todayTransactions" class="transaction-content">
-            <div class="transaction-summary">
-              <span class="summary-label">Today's Total:</span>
-              <span id="todayTotal" class="summary-amount">₹0</span>
+            
+            <div id="todayTransactions" class="transaction-content">
+              <div class="transaction-summary">
+                <span class="summary-label">Today's Total:</span>
+                <span id="todayTotal" class="summary-amount">₹0</span>
+              </div>
+              <div id="todayTransactionsList" class="transaction-list">
+                <p class="no-transactions">No transactions today</p>
+              </div>
             </div>
-            <div id="todayTransactionsList" class="transaction-list">
-              <p class="no-transactions">No transactions today</p>
+
+            <div id="monthTransactions" class="transaction-content hidden">
+              <div class="transaction-summary">
+                <span class="summary-label">This Month:</span>
+                <span id="monthTotal" class="summary-amount">₹0</span>
+              </div>
+              <div id="monthTransactionsList" class="transaction-list">
+                <!-- Daily summaries will be populated here -->
+              </div>
             </div>
           </div>
 
-          <div id="monthTransactions" class="transaction-content hidden">
-            <div class="transaction-summary">
-              <span class="summary-label">This Month:</span>
-              <span id="monthTotal" class="summary-amount">₹0</span>
+          <div class="card transaction-overview">
+            <h2>📊 Transaction Analytics</h2>
+            
+            <div class="transaction-tabs">
+              <button id="todayTransactionTab" class="transaction-tab-btn active">Today</button>
+              <button id="monthTransactionTab" class="transaction-tab-btn">30 Days</button>
             </div>
-            <div id="monthTransactionsList" class="transaction-list">
-              <!-- Daily summaries will be populated here -->
+            
+            <div id="todayTransactionView" class="transaction-view">
+              <div class="transaction-summary">
+                <div class="summary-card">
+                  <span class="summary-label">Today's Revenue</span>
+                  <span id="todayRevenue" class="summary-amount">₹0</span>
+                </div>
+                <div class="summary-card">
+                  <span class="summary-label">Items Sold</span>
+                  <span id="todayItemCount" class="summary-count">0</span>
+                </div>
+              </div>
+              <div id="todayTransactionDetails" class="transaction-details">
+                <p class="no-data">No transactions today</p>
+              </div>
+            </div>
+            
+            <div id="monthTransactionView" class="transaction-view hidden">
+              <div class="transaction-summary">
+                <div class="summary-card">
+                  <span class="summary-label">Monthly Revenue</span>
+                  <span id="monthRevenue" class="summary-amount">₹0</span>
+                </div>
+                <div class="summary-card">
+                  <span class="summary-label">Total Items</span>
+                  <span id="monthItemCount" class="summary-count">0</span>
+                </div>
+              </div>
+              <div id="monthTransactionDetails" class="transaction-details">
+                <p class="no-data">No transactions this month</p>
+              </div>
             </div>
           </div>
         </div>
-
-        <div class="card transaction-overview">
-          <h2>📊 Transaction Analytics</h2>
-          
-          <div class="transaction-tabs">
-            <button id="todayTransactionTab" class="transaction-tab-btn active">Today</button>
-            <button id="monthTransactionTab" class="transaction-tab-btn">30 Days</button>
-          </div>
-          
-          <div id="todayTransactionView" class="transaction-view">
-            <div class="transaction-summary">
-              <div class="summary-card">
-                <span class="summary-label">Today's Revenue</span>
-                <span id="todayRevenue" class="summary-amount">₹0</span>
-              </div>
-              <div class="summary-card">
-                <span class="summary-label">Items Sold</span>
-                <span id="todayItemCount" class="summary-count">0</span>
-              </div>
-            </div>
-            <div id="todayTransactionDetails" class="transaction-details">
-              <p class="no-data">No transactions today</p>
-            </div>
-          </div>
-          
-          <div id="monthTransactionView" class="transaction-view hidden">
-            <div class="transaction-summary">
-              <div class="summary-card">
-                <span class="summary-label">Monthly Revenue</span>
-                <span id="monthRevenue" class="summary-amount">₹0</span>
-              </div>
-              <div class="summary-card">
-                <span class="summary-label">Total Items</span>
-                <span id="monthItemCount" class="summary-count">0</span>
+        
+        <div class="right-col">
+          <!-- Performance Chart Section -->
+          <div class="card performance-card">
+            <div class="performance-header">
+              <h3>Daily Performance</h3>
+              <div class="performance-stats">
+                <div class="stat-item">
+                  <span class="stat-label">Target:</span>
+                  <span class="stat-value target">₹2,000</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Today:</span>
+                  <span id="todayPerformance" class="stat-value today">₹0</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Status:</span>
+                  <span id="performanceStatus" class="stat-value status neutral">On Track</span>
+                </div>
               </div>
             </div>
-            <div id="monthTransactionDetails" class="transaction-details">
-              <p class="no-data">No transactions this month</p>
+            
+            <div class="chart-container">
+              <canvas id="performanceChart" width="400" height="200"></canvas>
+            </div>
+            
+            <div class="chart-legend">
+              <div class="legend-item">
+                <span class="legend-color profit"></span>
+                <span class="legend-text">Profit (Above ₹2,000)</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-color loss"></span>
+                <span class="legend-text">Loss (Below ₹2,000)</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-color target-line"></span>
+                <span class="legend-text">Target Line (₹2,000)</span>
+              </div>
             </div>
           </div>
         </div>
