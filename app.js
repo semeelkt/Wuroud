@@ -104,6 +104,157 @@ logoutBtn.addEventListener("click", async () => {
   // onAuthStateChanged will handle UI cleanup
 });
 
+// Notification Bell Functionality
+let notificationState = {
+  lowStockItems: [],
+  isOpen: false,
+  hasBeenViewed: false
+};
+
+// Initialize notification bell
+function initializeNotificationBell() {
+  const bellButton = document.getElementById('notificationBell');
+  const bellBadge = document.getElementById('notificationBadge');
+  const notificationPanel = document.getElementById('notificationPanel');
+  const notificationOverlay = document.getElementById('notificationOverlay');
+  const closeBtn = document.getElementById('closeNotificationPanel');
+  const notificationContent = document.getElementById('notificationContent');
+
+  if (!bellButton) return;
+
+  // Bell click handler
+  bellButton.addEventListener('click', () => {
+    toggleNotificationPanel();
+  });
+
+  // Close button handler
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      closeNotificationPanel();
+    });
+  }
+
+  // Overlay click handler
+  if (notificationOverlay) {
+    notificationOverlay.addEventListener('click', () => {
+      closeNotificationPanel();
+    });
+  }
+
+  // Update notifications periodically
+  setInterval(updateNotifications, 10000); // Check every 10 seconds
+}
+
+function toggleNotificationPanel() {
+  const notificationPanel = document.getElementById('notificationPanel');
+  const notificationOverlay = document.getElementById('notificationOverlay');
+  
+  if (notificationState.isOpen) {
+    closeNotificationPanel();
+  } else {
+    openNotificationPanel();
+  }
+}
+
+function openNotificationPanel() {
+  const notificationPanel = document.getElementById('notificationPanel');
+  const notificationOverlay = document.getElementById('notificationOverlay');
+  
+  notificationState.isOpen = true;
+  notificationState.hasBeenViewed = true;
+  
+  if (notificationPanel) {
+    notificationPanel.classList.add('show');
+  }
+  if (notificationOverlay) {
+    notificationOverlay.classList.add('show');
+  }
+  
+  updateNotificationContent();
+  updateBellBadge();
+}
+
+function closeNotificationPanel() {
+  const notificationPanel = document.getElementById('notificationPanel');
+  const notificationOverlay = document.getElementById('notificationOverlay');
+  
+  notificationState.isOpen = false;
+  
+  if (notificationPanel) {
+    notificationPanel.classList.remove('show');
+  }
+  if (notificationOverlay) {
+    notificationOverlay.classList.remove('show');
+  }
+}
+
+function updateNotifications() {
+  const lowStockProducts = [];
+  const outOfStockProducts = [];
+  
+  products.forEach(product => {
+    const stock = getProductStock(product.id);
+    if (stock === 0) {
+      outOfStockProducts.push({...product, stock: 0});
+    } else if (stock <= LOW_STOCK_THRESHOLD && stock > 0) {
+      lowStockProducts.push({...product, stock});
+    }
+  });
+  
+  // Combine low stock and out of stock items
+  notificationState.lowStockItems = [...lowStockProducts, ...outOfStockProducts];
+  
+  updateBellBadge();
+  
+  if (notificationState.isOpen) {
+    updateNotificationContent();
+  }
+}
+
+function updateBellBadge() {
+  const bellBadge = document.getElementById('notificationBadge');
+  
+  if (!bellBadge) return;
+  
+  const count = notificationState.lowStockItems.length;
+  
+  if (count > 0 && !notificationState.hasBeenViewed) {
+    bellBadge.textContent = count > 99 ? '99+' : count.toString();
+    bellBadge.classList.remove('hidden');
+  } else {
+    bellBadge.classList.add('hidden');
+  }
+}
+
+function updateNotificationContent() {
+  const notificationContent = document.getElementById('notificationContent');
+  
+  if (!notificationContent) return;
+  
+  if (notificationState.lowStockItems.length === 0) {
+    notificationContent.innerHTML = `
+      <div class="no-alerts">No low stock alerts at the moment</div>
+    `;
+    return;
+  }
+  
+  const notificationHTML = notificationState.lowStockItems.map(item => {
+    const isOutOfStock = item.stock === 0;
+    const stockLevel = isOutOfStock ? 'Out of Stock' : `${item.stock} items left`;
+    const stockClass = isOutOfStock ? 'stock-level out-of-stock' : 'stock-level';
+    
+    return `
+      <div class="notification-item">
+        <h4>${escapeHtml(item.name)}</h4>
+        <p class="${stockClass}">${stockLevel}</p>
+        <p>Category: ${escapeHtml(item.category || 'Uncategorized')}</p>
+      </div>
+    `;
+  }).join('');
+  
+  notificationContent.innerHTML = notificationHTML;
+}
+
 // Display login/signup form or products
 function showAuthUI(isLoggedOut) {
   // Toggle visibility using CSS classes
@@ -660,7 +811,7 @@ function escapeHtml(str) {
   return String(str || "").replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[s]);
 }
 
-// Simple stock checking function for console logging
+// Enhanced stock checking function for notification bell
 function checkLowStockAlerts() {
   const lowStockProducts = [];
   const outOfStockProducts = [];
@@ -674,7 +825,7 @@ function checkLowStockAlerts() {
     }
   });
   
-  // Log alerts to console instead of showing notifications
+  // Log alerts to console for debugging
   lowStockProducts.forEach(product => {
     console.log(`Low Stock Alert: ${product.name} has only ${product.stock} items left!`);
   });
@@ -682,6 +833,18 @@ function checkLowStockAlerts() {
   outOfStockProducts.forEach(product => {
     console.log(`Out of Stock: ${product.name} is completely out of stock!`);
   });
+  
+  // Update notification system if new alerts are found
+  const totalAlerts = lowStockProducts.length + outOfStockProducts.length;
+  const previousAlerts = notificationState.lowStockItems.length;
+  
+  if (totalAlerts > previousAlerts) {
+    // New alerts found, reset viewed state
+    notificationState.hasBeenViewed = false;
+  }
+  
+  // Update notifications
+  updateNotifications();
   
   return { lowStock: lowStockProducts.length, outOfStock: outOfStockProducts.length };
 }
@@ -885,6 +1048,9 @@ onAuthStateChanged(auth, (user) => {
 
 // Tab switching functionality
 document.addEventListener('DOMContentLoaded', function() {
+  // Initialize notification bell
+  initializeNotificationBell();
+  
   // Initialize performance chart
   setTimeout(() => {
     initializePerformanceChart();
