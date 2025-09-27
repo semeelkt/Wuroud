@@ -1170,12 +1170,20 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Stock filters
-  const stockCategoryFilter = document.getElementById('stockCategoryFilter');
-  const stockStatusFilter = document.getElementById('stockStatusFilter');
-  
-  if (stockCategoryFilter) stockCategoryFilter.addEventListener('change', updateStockDisplay);
-  if (stockStatusFilter) stockStatusFilter.addEventListener('change', updateStockDisplay);
+  // Stock filters and search
+    const stockCategoryFilter = document.getElementById('stockCategoryFilter');
+    const stockStatusFilter = document.getElementById('stockStatusFilter');
+    const stockSearchInput = document.getElementById('stockSearchInput');
+    const stockSearchBtn = document.getElementById('stockSearchBtn');
+
+    if (stockCategoryFilter) stockCategoryFilter.addEventListener('change', updateStockDisplay);
+    if (stockStatusFilter) stockStatusFilter.addEventListener('change', updateStockDisplay);
+    if (stockSearchBtn && stockSearchInput) {
+      stockSearchBtn.addEventListener('click', () => updateStockDisplay());
+      stockSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') updateStockDisplay();
+      });
+    }
 });
 
 // Main section switching function
@@ -1403,34 +1411,33 @@ function updateStockDisplay() {
   const totalProductsEl = document.getElementById('totalProducts');
   const lowStockCountEl = document.getElementById('lowStockCount');
   const outOfStockCountEl = document.getElementById('outOfStockCount');
-  
+  const stockSearchInput = document.getElementById('stockSearchInput');
   if (!stockTableBody) return;
-  
+
   // Get filter values
   const categoryFilter = document.getElementById('stockCategoryFilter')?.value || 'all';
   const statusFilter = document.getElementById('stockStatusFilter')?.value || 'all';
-  
+  const searchTerm = stockSearchInput ? stockSearchInput.value.trim().toLowerCase() : '';
+
   // Filter products
   let filteredProducts = products.filter(product => {
     const categoryMatch = categoryFilter === 'all' || product.category === categoryFilter;
     const stock = getProductStock(product.id);
     let statusMatch = true;
-    
     if (statusFilter === 'low') {
       statusMatch = stock > 0 && stock <= 5;
     } else if (statusFilter === 'out') {
       statusMatch = stock === 0;
     }
-    
-    return categoryMatch && statusMatch;
+    const nameMatch = !searchTerm || (product.name && product.name.toLowerCase().includes(searchTerm));
+    return categoryMatch && statusMatch && nameMatch;
   });
-  
+
   // Generate table rows
   stockTableBody.innerHTML = filteredProducts.map(product => {
     const stock = getProductStock(product.id);
     let statusClass = 'in-stock';
     let statusText = 'In Stock';
-    
     if (stock === 0) {
       statusClass = 'out-of-stock';
       statusText = 'Out of Stock';
@@ -1438,7 +1445,6 @@ function updateStockDisplay() {
       statusClass = 'low-stock';
       statusText = 'Low Stock';
     }
-    
     return `
       <tr>
         <td>
@@ -1469,7 +1475,7 @@ function updateStockDisplay() {
       </tr>
     `;
   }).join('');
-  
+
   // Update statistics
   const totalProducts = products.length;
   const lowStockCount = products.filter(p => {
@@ -1477,7 +1483,7 @@ function updateStockDisplay() {
     return stock > 0 && stock <= 5;
   }).length;
   const outOfStockCount = products.filter(p => getProductStock(p.id) === 0).length;
-  
+
   if (totalProductsEl) totalProductsEl.textContent = totalProducts;
   if (lowStockCountEl) lowStockCountEl.textContent = lowStockCount;
   if (outOfStockCountEl) outOfStockCountEl.textContent = outOfStockCount;
