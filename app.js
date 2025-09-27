@@ -1012,7 +1012,20 @@ async function removeTransaction(transactionId, productId) {
   try {
     await deleteDoc(doc(db, "transactions", transactionId));
     if (productId) {
-      increaseStock(productId, 1);
+      // Find the product in the products array
+      const product = products.find(p => p.id === productId);
+      if (product && product.isPacket && product.packetSize) {
+        // Restock the packet product
+        increaseStock(productId, 1);
+        // Find the base (single) product by name and not packet
+        const baseProduct = products.find(p => p.name === product.name && !p.isPacket);
+        if (baseProduct) {
+          increaseStock(baseProduct.id, product.packetSize);
+        }
+      } else {
+        // Not a packet, just restock the product
+        increaseStock(productId, 1);
+      }
     }
   } catch (e) {
     console.error('Error removing transaction from Firestore:', e);
