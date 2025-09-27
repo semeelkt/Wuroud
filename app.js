@@ -1,1919 +1,1783 @@
-/* Cart packet label style */
-.packet-label-cart {
-  font-size: 13px;
-  color: #7c4dff;
-  font-weight: 500;
-  margin-left: 4px;
-  vertical-align: middle;
-}
-/* Packet option in Add New Product form */
-.packet-option-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 8px 0 0 0;
-}
-.packet-checkbox {
-  width: 18px;
-  height: 18px;
-  accent-color: #7c4dff;
-  cursor: pointer;
-}
-.packet-label {
-  font-size: 15px;
-  cursor: pointer;
-  color: #333;
-}
-.packet-size-wrap {
-  margin: 8px 0 0 0;
-}
-.packet-size-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 15px;
-  background: #fff;
-  color: #333;
-  outline: none;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-  transition: border-color 0.18s cubic-bezier(.4,0,.2,1), background 0.18s cubic-bezier(.4,0,.2,1);
-}
-.packet-size-input:focus {
-  border-color: #7c4dff;
-  background: #f8f6ff;
-}
-/* Stock search wrap for animation */
-.stock-search-wrap {
-  display: inline-flex;
-  align-items: center;
-  position: relative;
-}
-/* Stock Management Search UI - input only, always visible */
-.stock-search-wrap {
-  display: flex;
-  align-items: center;
-}
-.stock-search-input {
-  width: 180px;
-  opacity: 1;
-  padding: 0 12px;
-  height: 36px;
-  border-radius: 18px;
-  border: 1px solid #e0e0e0;
-  font-size: 15px;
-  background: #fff;
-  color: #333;
-  outline: none;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-  margin-left: 12px;
-  margin-right: 0;
-  transition: border-color 0.18s cubic-bezier(.4,0,.2,1), background 0.18s cubic-bezier(.4,0,.2,1);
-}
-.stock-search-input:focus {
-  border-color: #7c4dff;
-  background: #f8f6ff;
-}
-@media (max-width: 600px) {
-  .stock-search-input {
-    width: 90vw;
-    max-width: 400px;
-    font-size: 16px;
-    margin-left: auto;
-    margin-right: auto;
-    display: block;
+// app.js
+// Requires firebase-config.js to set window.FIREBASE_CONFIG
+console.log("app.js is loaded!");
+
+// Import Firebase SDKs
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, doc, onSnapshot, deleteDoc, query, orderBy, enableIndexedDbPersistence, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { firebaseConfig } from "./firebase-config.js";
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth();
+
+// Enable offline persistence for Firestore
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.log("Persistence failed. Multiple tabs open.");
+  } else if (err.code === 'unimplemented') {
+    console.log("Persistence is not supported by this browser.");
   }
-  .stock-search-wrap {
-    width: 100%;
-    justify-content: center;
+});
+
+// Firestore reference
+const productsCol = collection(db, "products");
+const userProductsCol = (userId) => collection(db, "users", userId, "products");
+const transactionsCol = collection(db, "transactions");
+
+// UI Elements
+const productGrid = document.getElementById("productGrid");
+const addBtn = document.getElementById("addProductBtn");
+const pName = document.getElementById("pName");
+const pPrice = document.getElementById("pPrice");
+const pCategoryInput = document.getElementById("pCategoryInput");
+const pImage = document.getElementById("pImage");
+const searchInput = document.getElementById("searchInput");
+const categoryFilter = document.getElementById("categoryFilter");
+const minPrice = document.getElementById("minPrice");
+const maxPrice = document.getElementById("maxPrice");
+// Packet option elements
+const isPacketCheckbox = document.getElementById("isPacketCheckbox");
+const packetSizeWrap = document.getElementById("packetSizeWrap");
+const packetSizeInput = document.getElementById("packetSizeInput");
+
+// Filter/search listeners
+searchInput.addEventListener("input", renderProducts);
+categoryFilter.addEventListener("change", renderProducts);
+minPrice.addEventListener("input", renderProducts);
+maxPrice.addEventListener("input", renderProducts);
+
+// Show/hide packet size input
+if (isPacketCheckbox && packetSizeWrap) {
+  isPacketCheckbox.addEventListener("change", function() {
+    packetSizeWrap.style.display = this.checked ? "block" : "none";
+    if (!this.checked && packetSizeInput) packetSizeInput.value = "";
+  });
+}
+const loginForm = document.getElementById("loginForm");
+const authContainer = document.getElementById("authContainer");
+const logoutBtn = document.getElementById("logoutBtn");
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+
+// Local state
+let cart = []; // Cart items
+let products = []; // Snapshot cache
+let transactions = []; // Today's transactions
+let dailyTotals = {}; // Store daily totals by date
+let performanceChart = null; // Chart.js instance
+const DAILY_TARGET = 2000; // Daily target in rupees
+
+// Stock threshold for alerts
+const LOW_STOCK_THRESHOLD = 5; // Alert when stock <= 5
+
+// Authentication functions
+document.getElementById("loginBtn").addEventListener("click", async () => {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  if (!email || !password) {
+    alert("Please enter both email and password.");
+    return;
   }
-}
-/* Stock search icon button */
-/* Professional and responsive stock search button */
-.stock-search-btn {
-  background: #fff;
-  border: 1.5px solid #c5c5c5;
-  border-radius: 50%;
-  padding: 7px;
-  margin-left: 10px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-  transition: background 0.18s, border 0.18s, box-shadow 0.18s;
-  outline: none;
-}
-.stock-search-btn:focus {
-  border-color: #6c63ff;
-  box-shadow: 0 0 0 2px #e0e7ff;
-}
-.stock-search-btn:hover {
-  background: #f3f6fa;
-  border-color: #a3a3a3;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-.stock-search-btn svg {
-  display: block;
-  width: 20px;
-  height: 20px;
-}
 
-@media (max-width: 600px) {
-  .stock-filters {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 8px !important;
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    // onAuthStateChanged will handle UI updates and loading
+  } catch (error) {
+    console.error("Error signing in: ", error.message);
+    alert("Error signing in: " + error.message);
   }
-  .stock-search-btn {
-    margin-left: 0;
-    margin-top: 8px;
-    align-self: flex-start;
-    width: 38px;
-    height: 38px;
-    padding: 8px;
+});
+
+document.getElementById("signUpBtn").addEventListener("click", async () => {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  if (!email || !password) {
+    alert("Please enter both email and password.");
+    return;
   }
-}
-/* Leaderboard card responsiveness */
-.leaderboard-card {
-  min-width: 0;
-}
-.leaderboard-header {
-  flex-wrap: wrap;
-}
-.leaderboard-list {
-  width: 100%;
-}
-.leaderboard-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid #f0f0f0;
-  flex-wrap: wrap;
-}
-.leaderboard-item .product-name {
-  flex: 1;
-  font-weight: 500;
-  color: #444;
-  font-size: 16px;
-  letter-spacing: 0.1px;
-}
-.leaderboard-item .sold-count {
-  font-size: 14px;
-  color: #28a745;
-  font-weight: 600;
-}
 
-@media (max-width: 600px) {
-  .leaderboard-header h3 {
-    font-size: 15px !important;
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+    alert("Account created successfully");
+  } catch (error) {
+    console.error("Error signing up: ", error.message);
+    alert("Error signing up: " + error.message);
   }
-  .leaderboard-item .product-name {
-    font-size: 14px !important;
+});
+
+logoutBtn.addEventListener("click", async () => {
+  await signOut(auth);
+  // onAuthStateChanged will handle UI cleanup
+});
+
+// Notification Bell Functionality
+let notificationState = {
+  lowStockItems: [],
+  isOpen: false,
+  hasBeenViewed: false
+};
+
+// Initialize notification bell
+function initializeNotificationBell() {
+  const bellButton = document.getElementById('notificationBell');
+  const bellBadge = document.getElementById('notificationBadge');
+  const notificationPanel = document.getElementById('notificationPanel');
+  const notificationOverlay = document.getElementById('notificationOverlay');
+  const closeBtn = document.getElementById('closeNotificationPanel');
+  const notificationContent = document.getElementById('notificationContent');
+
+  if (!bellButton) return;
+
+  // Bell click handler
+  bellButton.addEventListener('click', () => {
+    toggleNotificationPanel();
+  });
+
+  // Close button handler
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      closeNotificationPanel();
+    });
   }
-  .leaderboard-item .sold-count {
-    font-size: 12px !important;
+
+  // Overlay click handler
+  if (notificationOverlay) {
+    notificationOverlay.addEventListener('click', () => {
+      closeNotificationPanel();
+    });
   }
-  .leaderboard-item {
-    gap: 6px;
-    padding: 8px 0;
-  }
-}
-/* Notification Bell Icon Styles */
-.notification-bell {
-  position: relative;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 10px;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-  margin-left: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.notification-bell:hover {
-  background: rgba(0, 0, 0, 0.08);
-  transform: scale(1.05);
-}
-
-.notification-bell .bell-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-}
-
-.notification-bell .bell-icon svg {
-  color: #333;
-  transition: all 0.3s ease;
-}
-
-.notification-bell:hover .bell-icon svg {
-  color: #000;
-  transform: rotate(15deg);
-}
-
-.notification-badge {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  background: #ff4444;
-  color: white;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  font-size: 10px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  padding: 2px;
-}
-
-.notification-badge.hidden {
-  display: none;
-}
-
-/* Notification Panel Styles */
-.notification-panel {
-  position: fixed;
-  top: 80px;
-  right: 20px;
-  width: 350px;
-  max-height: 500px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
-  transform: translateX(100%);
-  opacity: 0;
-  transition: all 0.3s ease;
-  border: 1px solid #e9ecef;
-}
-
-.notification-panel.show {
-  transform: translateX(0);
-  opacity: 1;
-}
-
-.notification-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e9ecef;
-  background: #f8f9fa;
-  border-radius: 12px 12px 0 0;
-}
-
-.notification-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #666;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: rgba(0, 0, 0, 0.1);
-  color: #333;
-}
-
-.notification-content {
-  max-height: 400px;
-  overflow-y: auto;
-  padding: 0;
-}
-
-.notification-item {
-  padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
-  transition: background 0.2s ease;
-}
-
-.notification-item:hover {
-  background: #f8f9fa;
-}
-
-.notification-item:last-child {
-  border-bottom: none;
-}
-
-.notification-item h4 {
-  margin: 0 0 4px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-}
-
-.notification-item p {
-  margin: 0;
-  font-size: 12px;
-  color: #666;
-}
-
-.notification-item .stock-level {
-  color: #ff4444;
-  font-weight: 600;
-}
-
-.notification-item .stock-level.out-of-stock {
-  color: #dc3545;
-  background: rgba(220, 53, 69, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-}
-
-.no-alerts {
-  padding: 40px 20px;
-  text-align: center;
-  color: #999;
-  font-size: 14px;
-}
-
-.notification-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 999;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.3s ease;
-}
-
-.notification-overlay.show {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* Main Navigation Styles */
-.main-navigation {
-  background: #f8f9fa;
-  border-top: 1px solid #e9ecef;
-  padding: 0;
-}
-
-.nav-tabs {
-  display: flex;
-  gap: 0;
-  max-width: 1200px;
-  margin: 0 auto;
-  justify-content: center;
-}
-
-.nav-tab {
-  background: transparent;
-  border: none;
-  padding: 16px 24px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #6c757d;
-  border-bottom: 3px solid transparent;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.nav-tab:hover {
-  color: #7b1fa2;
-}
-
-.nav-tab.active {
-  color: #7b1fa2;
-  border-bottom-color: #7b1fa2;
-  background: rgba(123, 31, 162, 0.08);
-}
-
-.nav-icon {
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nav-icon svg {
-  color: #6c757d;
-  transition: all 0.3s ease;
-}
-
-.nav-tab.active .nav-icon svg {
-  color: #7b1fa2;
-}
-
-.nav-tab:hover .nav-icon svg {
-  color: #343a40;
-}
-
-.nav-text {
-  font-weight: 600;
-}
-
-/* Section Management */
-.main-section {
-  display: none;
-  padding: 20px 0;
-}
-
-.main-section.active {
-  display: block;
-}
-
-.section-layout {
-  display: flex;
-  gap: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-/* Transaction Section Styles */
-.transactions-content {
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-.transaction-overview {
-  margin-bottom: 20px;
-}
-
-.transaction-tabs {
-  display: flex;
-  gap: 8px;
-  margin: 16px 0;
-}
-
-.transaction-tab-btn {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  background: #f8f9fa;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s ease;
-}
-
-.transaction-tab-btn.active {
-  background: #7b1fa2;
-  color: white;
-  border-color: #7b1fa2;
-}
-
-.transaction-view {
-  display: block;
-}
-
-.transaction-view.hidden {
-  display: none;
-}
-
-.transaction-summary {
-  display: flex;
-  gap: 20px;
-  margin: 16px 0;
-}
-
-.summary-card {
-  background: #f8f9fa;
-  padding: 16px;
-  border-radius: 8px;
-  text-align: center;
-  flex: 1;
-}
-
-.summary-label {
-  display: block;
-  font-size: 12px;
-  color: #6c757d;
-  margin-bottom: 4px;
-}
 
-.summary-amount {
-  display: block;
-  font-size: 20px;
-  font-weight: 700;
-  color: #28a745;
+  // Update notifications periodically
+  setInterval(updateNotifications, 10000); // Check every 10 seconds
 }
-
-.summary-count {
-  display: block;
-  font-size: 20px;
-  font-weight: 700;
-  color: #007bff;
-}
-
-/* Stock Section Styles */
-.stock-content {
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-.stock-stats {
-  display: flex;
-  gap: 20px;
-  margin: 20px 0;
-}
-
-.stat-card {
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 8px;
-  text-align: center;
-  flex: 1;
-  border-left: 4px solid #28a745;
-}
-
-.stat-card.warning {
-  border-left-color: #ffc107;
-}
-
-.stat-card.danger {
-  border-left-color: #dc3545;
-}
-
-.stat-number {
-  font-size: 24px;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: #6c757d;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.stock-filters {
-  display: flex;
-  gap: 12px;
-  margin: 16px 0;
-}
-
-.stock-filters select {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-  font-size: 14px;
-}
-
-
-
-.stock-table-container {
-  overflow-x: auto;
-}
-
-.stock-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 16px;
-}
-
-.stock-table th,
-.stock-table td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.stock-table th {
-  background: #f8f9fa;
-  font-weight: 600;
-  color: #495057;
-}
-
-.stock-product-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.stock-product-image {
-  width: 40px;
-  height: 40px;
-  background: #f0f0f0;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  color: #6c757d;
-}
-
-.stock-product-image img {
-  max-width: 100%;
-  max-height: 100%;
-  border-radius: 4px;
-}
-
-.stock-product-name {
-  font-weight: 500;
-}
-
-.stock-quantity {
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 4px;
-  background: #e9ecef;
-}
-
-.stock-status {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.stock-status.in-stock {
-  background: #d4edda;
-  color: #155724;
-}
-
-.stock-status.low-stock {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.stock-status.out-of-stock {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.stock-btn {
-  padding: 6px 12px;
-  border: 1px solid #7b1fa2;
-  background: transparent;
-  color: #7b1fa2;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s ease;
-}
-
-.stock-btn:hover {
-  background: #7b1fa2;
-  color: white;
-}
-
-/* Additional styling for transaction details */
-.transaction-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.transaction-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.transaction-product {
-  font-weight: 500;
-  font-size: 14px;
-}
-
-.transaction-time {
-  font-size: 12px;
-  color: #6c757d;
-}
-
-.transaction-amount {
-  font-weight: 600;
-  color: #28a745;
-  font-size: 14px;
-}
-
-.daily-summary-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  margin: 4px 0;
-  background: #f8f9fa;
-  border-radius: 4px;
-  border-left: 3px solid #7b1fa2;
-}
-
-.daily-date {
-  font-weight: 500;
-  font-size: 14px;
-}
-
-.daily-amount {
-  font-weight: 600;
-  color: #28a745;
-}
-
-.no-data {
-  text-align: center;
-  color: #6c757d;
-  font-style: italic;
-  padding: 20px;
-  margin: 0;
-}
-
-/* Performance stats styling */
-.performance-stats {
-  display: flex;
-  gap: 16px;
-  margin: 16px 0;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  text-align: center;
-  flex: 1;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: #6c757d;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.stat-value {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.stat-value.target {
-  color: #007bff;
-}
-
-.stat-value.today {
-  color: #28a745;
-}
-
-.stat-value.status {
-  color: #6c757d;
-}
-
-/* Chart container styling */
-.chart-container {
-  position: relative;
-  height: 200px;
-  margin: 16px 0;
-}
-
-
-
-
-
-
-
-
 
-/* Responsive improvements */
-@media (max-width: 768px) {
+function toggleNotificationPanel() {
+  const notificationPanel = document.getElementById('notificationPanel');
+  const notificationOverlay = document.getElementById('notificationOverlay');
   
-  .nav-tabs {
-    flex-direction: column;
+  if (notificationState.isOpen) {
+    closeNotificationPanel();
+  } else {
+    openNotificationPanel();
+  }
+}
+
+function openNotificationPanel() {
+  const notificationPanel = document.getElementById('notificationPanel');
+  const notificationOverlay = document.getElementById('notificationOverlay');
+  
+  notificationState.isOpen = true;
+  notificationState.hasBeenViewed = true;
+  
+  if (notificationPanel) {
+    notificationPanel.classList.add('show');
+  }
+  if (notificationOverlay) {
+    notificationOverlay.classList.add('show');
   }
   
-  .nav-tab {
-    min-width: auto;
-    justify-content: flex-start;
-    padding: 12px 16px;
+  updateNotificationContent();
+  updateBellBadge();
+}
+
+function closeNotificationPanel() {
+  const notificationPanel = document.getElementById('notificationPanel');
+  const notificationOverlay = document.getElementById('notificationOverlay');
+  
+  notificationState.isOpen = false;
+  
+  if (notificationPanel) {
+    notificationPanel.classList.remove('show');
+  }
+  if (notificationOverlay) {
+    notificationOverlay.classList.remove('show');
+  }
+}
+
+function updateNotifications() {
+  const lowStockProducts = [];
+  const outOfStockProducts = [];
+  
+  products.forEach(product => {
+    const stock = getProductStock(product.id);
+    if (stock === 0) {
+      outOfStockProducts.push({...product, stock: 0});
+    } else if (stock <= LOW_STOCK_THRESHOLD && stock > 0) {
+      lowStockProducts.push({...product, stock});
+    }
+  });
+  
+  // Combine low stock and out of stock items
+  notificationState.lowStockItems = [...lowStockProducts, ...outOfStockProducts];
+  
+  updateBellBadge();
+  
+  if (notificationState.isOpen) {
+    updateNotificationContent();
+  }
+}
+
+function updateBellBadge() {
+  const bellBadge = document.getElementById('notificationBadge');
+  
+  if (!bellBadge) return;
+  
+  const count = notificationState.lowStockItems.length;
+  
+  if (count > 0 && !notificationState.hasBeenViewed) {
+    bellBadge.textContent = count > 99 ? '99+' : count.toString();
+    bellBadge.classList.remove('hidden');
+  } else {
+    bellBadge.classList.add('hidden');
+  }
+}
+
+function updateNotificationContent() {
+  const notificationContent = document.getElementById('notificationContent');
+  
+  if (!notificationContent) return;
+  
+  if (notificationState.lowStockItems.length === 0) {
+    notificationContent.innerHTML = `
+      <div class="no-alerts">No low stock alerts at the moment</div>
+    `;
+    return;
   }
   
-  .section-layout {
-    flex-direction: column;
+  const notificationHTML = notificationState.lowStockItems.map(item => {
+    const isOutOfStock = item.stock === 0;
+    const stockLevel = isOutOfStock ? 'Out of Stock' : `${item.stock} items left`;
+    const stockClass = isOutOfStock ? 'stock-level out-of-stock' : 'stock-level';
+    
+    return `
+      <div class="notification-item">
+        <h4>${escapeHtml(item.name)}</h4>
+        <p class="${stockClass}">${stockLevel}</p>
+        <p>Category: ${escapeHtml(item.category || 'Uncategorized')}</p>
+      </div>
+    `;
+  }).join('');
+  
+  notificationContent.innerHTML = notificationHTML;
+}
+
+// Display login/signup form or products
+function showAuthUI(isLoggedOut) {
+  // Toggle visibility using CSS classes
+  if (isLoggedOut) {
+    loginForm.classList.remove('hidden');
+    logoutBtn.classList.add('hidden');
+  } else {
+    loginForm.classList.add('hidden');
+    logoutBtn.classList.remove('hidden');
   }
   
-  .stock-stats,
-  .transaction-summary,
-  .performance-stats {
-    flex-direction: column;
-    gap: 12px;
+  // Show/hide main content based on auth state
+  const mainContent = document.querySelector('main');
+  if (mainContent) {
+    if (isLoggedOut) {
+      mainContent.classList.add('hidden');
+    } else {
+      mainContent.classList.remove('hidden');
+    }
   }
   
-  .stock-table-container {
-    overflow-x: scroll;
+  // Position auth container appropriately
+  if (isLoggedOut) {
+    authContainer.style.position = "fixed";
+    authContainer.style.top = "50%";
+    authContainer.style.left = "50%";
+    authContainer.style.transform = "translate(-50%, -50%)";
+    authContainer.style.zIndex = "1000";
+  } else {
+    authContainer.style.position = "static";
+    authContainer.style.transform = "none";
+    authContainer.style.zIndex = "auto";
   }
 }
 
-/* Product card styles */
-.product-card {
-  background: var(--card, #fff);
-  border-radius: 8px;
-  box-shadow: var(--shadow, 0 2px 8px rgba(0,0,0,0.06));
-  padding: 16px;
-  margin: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 200px;
-  max-width: 220px;
-}
-.prod-img-wrap {
-  width: 100px;
-  height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f0f0f0;
-  border-radius: 6px;
-  margin-bottom: 10px;
-  overflow: hidden;
-}
-.prod-img-wrap img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-.no-img {
-  color: #bbb;
-  font-size: 13px;
-}
-.prod-info {
-  text-align: center;
-}
-.prod-title {
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-.prod-meta {
-  color: var(--muted, #888);
-  font-size: 13px;
-  margin-bottom: 8px;
-}
-.product-card .btn {
-  margin: 2px 0;
-  width: 100%;
-}
+// Add product to Firestore under logged-in user's collection
+addBtn.addEventListener("click", async () => {
+  const name = pName.value.trim();
+  const price = Number(pPrice.value);
+  const stock = Number(document.getElementById("pStock").value) || 0;
+  const category = pCategoryInput.value;
+  const image = pImage.value.trim();
+  const user = auth.currentUser;
+  const isPacket = isPacketCheckbox && isPacketCheckbox.checked;
+  const packetSize = isPacket && packetSizeInput ? Number(packetSizeInput.value) : null;
 
-.product-card .btn:disabled {
-  background: #6c757d;
-  border-color: #6c757d;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
+  if (!name || !price) return alert("Please enter product name and price.");
+  if (stock < 0) return alert("Stock quantity cannot be negative.");
+  if (isPacket && (!packetSize || packetSize < 1)) return alert("Please enter a valid packet size.");
 
-.prod-stock {
-  font-size: 12px;
-  font-weight: 600;
-  margin: 4px 0;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-align: center;
-}
+  if (user) {
+    await addDoc(productsCol, {
+      name,
+      price,
+      category,
+      image: image || "",
+      stock: stock,
+      isPacket: !!isPacket,
+      packetSize: isPacket ? packetSize : null,
+      createdAt: Date.now(),
+      userId: user.uid
+    });
 
-.prod-stock.stock-normal {
-  background: #d4edda;
-  color: #155724;
-}
-
-.prod-stock.stock-low {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.prod-stock.stock-out {
-  background: #f8d7da;
-  color: #721c24;
-}
-#productGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px 18px;
-  justify-items: center;
-  align-items: stretch;
-  max-height: 540px;
-  overflow-y: auto;
-  padding-right: 8px;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-:root{
-  --bg:#f5f6f7;
-  --card:#ffffff;
-  --muted:#9aa0a6;
-  --accent:#2f855a; /* green-ish for buttons */
-  --accent-dark:#276a4a;
-  --danger:#d9534f;
-  --shadow: 0 6px 18px rgba(20,20,20,0.06);
-  font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-}
-
-*{box-sizing:border-box}
-body{
-  margin:0;
-  background:var(--bg);
-  color:#1f1f1f;
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-  line-height:1.4;
-}
-
-.container{
-  max-width:1180px;
-  margin:0 auto;
-  padding:24px;
-}
-
-/* header */
-.site-header{
-  background:transparent;
-  padding:26px 0 0 0;
-}
-.header-inner{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-}
-.brand h1{
-  margin:0;
-  font-weight:800;
-  letter-spacing:0.2px;
-}
-.brand h1 small{font-weight:600;color:var(--muted);font-size:14px;margin-left:6px}
-.tag{color:var(--muted);font-size:13px;margin-top:6px}
-
-/* search area */
-.search-area{
-  display:flex;
-  gap:12px;
-  align-items:center;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  padding: 16px 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-  border: 1px solid rgba(255,255,255,0.8);
-}
-.search-area input, .search-area select{
-  padding:12px 16px;
-  border-radius:10px;
-  border:2px solid #e1e5e9;
-  background:white;
-  min-width:160px;
-  font-size:14px;
-  font-weight:500;
-  color:#495057;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-.search-area input:focus, .search-area select:focus {
-  outline: none;
-  border-color: #7b1fa2;
-  box-shadow: 0 0 0 3px rgba(123, 31, 162, 0.1), 0 4px 16px rgba(0,0,0,0.1);
-  transform: translateY(-1px);
-}
-
-.search-area input:hover, .search-area select:hover {
-  border-color: #adb5bd;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-
-.search-area input::placeholder {
-  color: #6c757d;
-  font-weight: 400;
-}
-
-.search-area select {
-  cursor: pointer;
-  appearance: none;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%237b1fa2' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-  background-position: right 14px center;
-  background-repeat: no-repeat;
-  background-size: 20px;
-  padding-right: 45px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 15px rgba(123, 31, 162, 0.1);
-  border: 2px solid #e1e5e9;
-  /* border-radius removed */
-}
-
-
-
-.search-area select:hover {
-  background: linear-gradient(135deg, #ffffff 0%, #f1f3f4 100%);
-  box-shadow: 0 6px 20px rgba(123, 31, 162, 0.15);
-  transform: translateY(-1px);
-}
-
-.search-area select:focus {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  box-shadow: 0 0 0 4px rgba(123, 31, 162, 0.1), 0 8px 25px rgba(123, 31, 162, 0.2);
-  transform: translateY(-2px);
-}
-
-.search-area .ghost{
-  border:2px solid #dee2e6;
-  background:rgba(255,255,255,0.8);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-}
-
-/* Professional dropdown options with modern card design */
-/* Professional dropdown options with extra curve and stylish font */
-.search-area select option {
-  padding: 18px 26px;
-  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-  color: #374151;
-  font-family: 'Inter', 'Segoe UI', 'Poppins', 'Montserrat', Arial, sans-serif;
-  font-weight: 700;
-  border: none;
-  margin: 2px 0;
-  font-size: 16px;
-  letter-spacing: 0.35px;
-  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-  position: relative;
-  line-height: 1.7;
-  border-radius: 18px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  border-left: 4px solid transparent;
-}
-
-.search-area select option:hover {
-  background: linear-gradient(145deg, #4f46e5 0%, #7c3aed 100%);
-  color: white;
-  transform: translateX(6px) translateY(-2px);
-  padding-left: 32px;
-  box-shadow: 0 8px 25px rgba(79, 70, 229, 0.25), inset 4px 0 0 rgba(255,255,255,0.4);
-  border-left-color: rgba(255,255,255,0.6);
-  border-radius: 12px;
-}
-
-.search-area select option:checked,
-.search-area select option:selected {
-  background: linear-gradient(145deg, #1f2937 0%, #374151 100%);
-  color: white;
-  font-weight: 700;
-  position: relative;
-  border-left-color: #10b981;
-  box-shadow: 0 4px 15px rgba(31, 41, 55, 0.3);
-  transform: scale(1.02);
-}
-
-.search-area select option:checked::before,
-.search-area select option:selected::before {
-  content: "✓";
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-weight: bold;
-  font-size: 16px;
-  animation: checkmark 0.3s ease-in-out;
-}
-
-@keyframes checkmark {
-  0% { opacity: 0; transform: translateY(-50%) scale(0.5); }
-  100% { opacity: 1; transform: translateY(-50%) scale(1); }
-}
-
-.search-area select option:checked::before,
-.search-area select option:selected::before {
-  content: "✓";
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-weight: bold;
-  font-size: 16px;
-  animation: checkmark 0.3s ease-in-out;
-}
-
-@keyframes checkmark {
-  0% { opacity: 0; transform: translateY(-50%) scale(0.5); }
-  100% { opacity: 1; transform: translateY(-50%) scale(1); }
-}
-
-.search-area select option:first-child {
-  font-weight: 700;
-  background: linear-gradient(145deg, #eff6ff 0%, #dbeafe 100%);
-  color: #1e40af;
-  border: 2px solid #3b82f6;
-  border-radius: 10px;
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  padding: 16px 26px;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-  margin-bottom: 6px;
-}
-
-.search-area select option:first-child:hover {
-  background: linear-gradient(145deg, #1e40af 0%, #3b82f6 100%);
-  color: white;
-  transform: scale(1.05);
-  padding-left: 26px;
-  box-shadow: 0 8px 20px rgba(30, 64, 175, 0.3);
-  border-color: #60a5fa;
-}
-
-.search-area select option:not(:first-child) {
-  position: relative;
-}
-
-.search-area select option:not(:first-child):before {
-  margin-right: 12px;
-  font-size: 16px;
-  opacity: 0.9;
-  transition: all 0.3s ease;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-/* Category-specific icons and styling */
-.search-area select option[value="Footwear"]:before {
-  content: "�";
-}
-
-.search-area select option[value="Fancy"]:before {
-  content: "✨";
-}
-
-.search-area select option[value="Toys"]:before {
-  content: "🧸";
-}
-
-.search-area select option[value="Stationery"]:before {
-  content: "📝";
-}
-
-/* Professional category-specific hover effects */
-.search-area select option[value="Footwear"]:hover {
-  background: linear-gradient(145deg, #0ea5e9 0%, #06b6d4 100%);
-  box-shadow: 0 8px 25px rgba(14, 165, 233, 0.25), inset 4px 0 0 rgba(255,255,255,0.4);
-  border-left-color: #67e8f9;
-}
-
-.search-area select option[value="Fancy"]:hover {
-  background: linear-gradient(145deg, #ec4899 0%, #f97316 100%);
-  box-shadow: 0 8px 25px rgba(236, 72, 153, 0.25), inset 4px 0 0 rgba(255,255,255,0.4);
-  border-left-color: #fbbf24;
-}
-
-.search-area select option[value="Toys"]:hover {
-  background: linear-gradient(145deg, #10b981 0%, #059669 100%);
-  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.25), inset 4px 0 0 rgba(255,255,255,0.4);
-  border-left-color: #34d399;
-}
-
-.search-area select option[value="Stationery"]:hover {
-  background: linear-gradient(145deg, #8b5cf6 0%, #7c3aed 100%);
-  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.25), inset 4px 0 0 rgba(255,255,255,0.4);
-  border-left-color: #a78bfa;
-}
-
-/* Professional icon hover animation */
-.search-area select option:hover:before {
-  transform: scale(1.3) rotate(8deg);
-  opacity: 1;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-}
-
-.search-area select option:not(:first-child) {
-  position: relative;
-  overflow: hidden;
-}
-
-.search-area select option:not(:first-child)::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  transition: left 0.5s ease;
-}
-
-.search-area select option:hover::after {
-  left: 100%;
-}
-
-/* layout */
-main{display:flex;gap:28px;margin-top:18px}
-.left-col{flex:1}
-.right-col{width:360px}
-
-/* cards */
-.card{
-  background:var(--card);
-  border-radius:12px;
-  padding:14px;
-  box-shadow:var(--shadow);
-  margin-bottom:18px;
-}
-.add-product input, .add-product select{
-  display:block;
-  width:100%;
-  padding:10px 12px;
-  margin:8px 0;
-  border-radius:8px;
-  border:1px solid #ececec;
-  background:transparent;
-}
-
-/* Packet option row styled like input */
-.packet-option-row {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  margin: 8px 0;
-  padding: 0 0 0 2px;
-  min-height: 44px;
-  border-radius: 8px;
-  border: 1px solid #ececec;
-  background: transparent;
-  box-sizing: border-box;
-  flex-direction: row;
-  justify-content: flex-start;
-  gap: 10px;
-}
-.packet-label {
-  font-size: 15px;
-  cursor: pointer;
-  color: #333;
-  margin: 0;
-}
-.packet-checkbox {
-  width: 18px;
-  height: 18px;
-  accent-color: #7c4dff;
-  cursor: pointer;
-  margin: 0;
-}
-}
-.grid{
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 18px;
-  grid-auto-rows: 1fr;
-  max-height: calc(3 * 260px); /* 3 rows, adjust 260px as needed for your card height */
-  overflow-y: auto;
-}
-
-/* product card style like screenshot */
-.prod-card{
-  border-radius:10px;
-  overflow:hidden;
-  background:linear-gradient(#fff,#fafafa);
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-  border:1px solid #eee;
-}
-.prod-image{
-  height:140px;
-  background:#eee;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:12px;
-  color:var(--muted);
-}
-.prod-body{padding:14px;text-align:center}
-.prod-title{font-weight:700;margin-bottom:8px}
-.prod-price{color:var(--accent);font-weight:700;margin-bottom:12px}
-.prod-actions{display:flex;gap:10px;flex-direction:column;align-items:center;padding:12px}
-
-/* buttons (stylish but only neutral colors) */
-.btn{
-  border:0;
-  padding:8px 12px;
-  border-radius:10px;
-  cursor:pointer;
-  font-weight:600;
-  box-shadow:0 6px 12px rgba(0,0,0,0.04);
-  background:#f6f7f8;
-  transition:transform .08s ease, box-shadow .12s;
-  min-width:110px;
-}
-.btn:hover{transform:translateY(-2px)}
-.btn.primary{
-  background:linear-gradient(180deg,var(--accent),var(--accent-dark));
-  color:white;
-  box-shadow: 0 8px 20px rgba(39,106,74,0.18);
-}
-.btn.danger{
-  background:linear-gradient(180deg,var(--danger),#b93b36);
-  color:white;
-}
-.btn.ghost{
-  background:transparent;border:1px solid #ddd;padding:8px 10px;
-}
-
-
-/* bill table - black and white only */
-.bill-card input{width:100%;padding:8px;border-radius:8px;border:1px solid #000;margin-bottom:8px;background:#fff;color:#000}
-.bill-table{width:100%;border-collapse:collapse;font-size:14px;background:#fff;color:#000}
-.bill-table thead th{ text-align:left;padding:8px 6px;color:#000;font-weight:700;border-bottom:1.5px solid #000;background:#fff;}
-.bill-table tbody td{padding:8px 6px;border-top:1px solid #000;color:#000;background:#fff;}
-.bill-table tfoot td{padding:10px 6px;font-size:16px;color:#000;background:#fff;border-top:1.5px solid #000;}
-
-.bill-actions{display:flex;flex-direction:column;gap:8px;margin-top:8px}
-.bill-actions .btn{min-width:unset;padding:10px}
-
-/* footer */
-.footer{padding:20px 24px;text-align:center;color:#000;margin-top:18px;background:#fff}
-
-/* small screens */
-@media(max-width:900px){
-  main{flex-direction:column}
-  .right-col{width:100%}
-}
-
-/* UTILITY CLASSES */
-.hidden {
-  display: none !important;
-}
-
-/* LOGIN SECTION STYLES */
-#authContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin: 32px auto 0 auto;
-  max-width: 350px;
-  width: 100%;
-  background: var(--card);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-  padding: 32px 24px 24px 24px;
-}
-#loginForm {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  width: 100%;
-}
-#loginForm input {
-  padding: 12px 14px;
-  border-radius: 8px;
-  border: 1px solid #e6e7e8;
-  background: #fafbfc;
-  font-size: 16px;
-  margin-bottom: 0;
-  width: 100%;
-  transition: border 0.2s;
-}
-#loginForm input:focus {
-  border: 1.5px solid var(--accent);
-  outline: none;
-}
-#loginForm .btn {
-  width: 100%;
-  margin-top: 4px;
-}
-#logoutBtn {
-  margin-top: 18px;
-  width: 100%;
-}
-
-/* Responsive tweaks for login on small screens */
-@media (max-width: 600px) {
-  #authContainer {
-    max-width: 98vw;
-    padding: 18px 6vw 18px 6vw;
-    box-shadow: none;
-    border-radius: 0;
+    pName.value = "";
+    pPrice.value = "";
+    document.getElementById("pStock").value = "";
+    pImage.value = "";
+    if (isPacketCheckbox) isPacketCheckbox.checked = false;
+    if (packetSizeInput) packetSizeInput.value = "";
+    if (packetSizeWrap) packetSizeWrap.style.display = "none";
+    loadProducts();
+  } else {
+    alert("Please log in to add products.");
   }
+});
+
+// Populate the category filter dropdown with unique categories from products
+function populateCategoryFilter() {
+  const categories = Array.from(new Set(products.map(p => p.category))).filter(Boolean);
+  categoryFilter.innerHTML = '<option value="all">All Categories</option>' +
+    categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join("");
 }
 
-/* TRANSACTION SECTION STYLES */
-.transaction-card {
-  margin-top: 0;
+// Listen to product changes for the logged-in user
+function loadProducts() {
+  console.log("🔥 Loading products from Firebase...");
+  // Show all products in the global collection, ordered by createdAt
+  const q = query(productsCol, orderBy("createdAt", "desc"));
+  onSnapshot(q, snap => {
+    console.log("📡 Firebase snapshot received, documents count:", snap.size);
+    products = [];
+    snap.forEach(docSnap => {
+      const productData = docSnap.data();
+      console.log("📦 Product loaded:", docSnap.id, productData);
+      products.push({ id: docSnap.id, ...productData });
+      
+      // Always use stock from Firebase database
+      if (productData.stock !== undefined) {
+        productStocks[docSnap.id] = productData.stock;
+        console.log(`📊 Stock loaded from Firebase for ${productData.name}: ${productData.stock}`);
+      } else {
+        productStocks[docSnap.id] = 0; // Default to 0 if no stock specified
+        console.log(`⚠️  No stock data in Firebase for ${productData.name}, defaulting to 0`);
+      }
+    });
+    console.log("💾 Final products array:", products.length, "items");
+    console.log("📊 Final productStocks:", productStocks);
+    renderProducts();
+    populateCategoryFilter();
+    populateStockFilters();
+    updateStockDisplay();
+  }, error => {
+    console.error("❌ Firebase connection error:", error);
+  });
 }
 
-.transaction-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #f0f0f0;
-  padding-bottom: 16px;
-  gap: 20px;
+// Render products based on filters
+function renderProducts() {
+  const qName = searchInput.value.trim().toLowerCase();
+  const qCat = categoryFilter.value;
+  const min = minPrice.value ? Number(minPrice.value) : -Infinity;
+  const max = maxPrice.value ? Number(maxPrice.value) : Infinity;
+
+  const filtered = products.filter(p => {
+    const nameMatch = p.name.toLowerCase().includes(qName);
+    const catMatch = qCat === "all" ? true : p.category === qCat;
+    const priceMatch = p.price >= min && p.price <= max;
+    return nameMatch && catMatch && priceMatch;
+  });
+
+  console.log("Rendering products:", filtered);
+  productGrid.innerHTML = filtered.map(p => productCardHtml(p)).join("");
+  attachProductCardListeners();
 }
 
-.transaction-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #1f1f1f;
-  flex: 1;
+// Attach event listeners to product cards
+function attachProductCardListeners() {
+  document.querySelectorAll(".add-to-bill").forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      const product = products.find(p => p.id === id);
+      if (!product) return;
+      addToCart(product);
+    };
+  });
+
+  // Sell Packet button logic: add packet to cart
+  document.querySelectorAll(".sell-packet").forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      const packetProduct = products.find(p => p.id === id);
+      if (!packetProduct || !packetProduct.isPacket || !packetProduct.packetSize) return;
+      // Add to cart as a packet item
+      const found = cart.find(c => c.id === packetProduct.id && c.isPacket);
+      if (found) {
+        found.qty += 1;
+      } else {
+        cart.push({
+          id: packetProduct.id,
+          name: packetProduct.name + ' (Packet)',
+          price: packetProduct.price,
+          qty: 1,
+          isPacket: true,
+          packetSize: packetProduct.packetSize
+        });
+      }
+      renderCart();
+    };
+  });
+
+  document.querySelectorAll(".remove-prod").forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.id;
+      if (!confirm("Delete this product?")) return;
+      const user = auth.currentUser;
+      if (user) {
+        await deleteDoc(doc(db, "products", id));
+        // Remove from UI immediately
+        loadProducts();
+      } else {
+        alert("You must be logged in to remove products.");
+      }
+    };
+  });
 }
 
-.transaction-tabs {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.tab-btn {
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  background: #f8f9fa;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  color: #666;
-  transition: all 0.2s ease;
-}
-
-.tab-btn:hover {
-  background: #e9ecef;
-  transform: translateY(-1px);
-}
-
-.tab-btn.active {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
-  box-shadow: 0 2px 6px rgba(47, 133, 90, 0.2);
-}
-
-.transaction-content {
-  min-height: 200px;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.transaction-content.hidden {
-  display: none !important;
-}
-
-.transaction-summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #f8f9fa;
-  padding: 12px 14px;
-  border-radius: 8px;
-  margin-bottom: 14px;
-  border: 1px solid #e9ecef;
-}
-
-.summary-label {
-  font-weight: 600;
-  color: #495057;
-  font-size: 14px;
-}
-
-.summary-amount {
-  font-weight: 700;
-  color: var(--accent);
-  font-size: 16px;
-}
-
-.transaction-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.transaction-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  padding: 10px 12px;
-  transition: all 0.2s ease;
-}
-
-.transaction-item:hover {
-  border-color: #ced4da;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.transaction-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.transaction-product {
-  font-weight: 500;
-  color: #212529;
-  font-size: 14px;
-}
-
-.transaction-time {
-  font-size: 12px;
-  color: #6c757d;
-}
-
-.transaction-amount {
-  font-weight: 600;
-  color: var(--accent);
-  margin-right: 8px;
-  font-size: 14px;
-}
-
-.transaction-remove {
-  background: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  transition: all 0.2s ease;
-}
-
-.transaction-remove:hover {
-  background: #c82333;
-  transform: scale(1.1);
-}
-
-.daily-summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  padding: 12px 14px;
-  transition: all 0.2s ease;
-}
-
-.daily-summary:hover {
-  border-color: #ced4da;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.daily-date {
-  font-weight: 500;
-  color: #495057;
-  font-size: 14px;
-}
-
-.daily-amount {
-  font-weight: 600;
-  color: var(--accent);
-  font-size: 14px;
-}
-
-.no-transactions {
-  text-align: center;
-  color: #6c757d;
-  font-style: italic;
-  padding: 20px;
-  margin: 0;
-}
-
-/* PERFORMANCE CHART STYLES */
-.performance-card {
-  margin-top: 0;
-}
-
-.performance-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 2px solid #f0f0f0;
-}
-
-.performance-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #1f1f1f;
-}
-
-.performance-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 160px;
-}
-
-.stat-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 12px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
-}
-
-.stat-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #6c757d;
-}
-
-.stat-value {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.stat-value.target {
-  color: #ff6b6b;
-}
-
-.stat-value.today {
-  color: var(--accent);
-}
-
-.stat-value.status.profit {
-  color: #2ed573;
-}
-
-.stat-value.status.loss {
-  color: #ff6b6b;
-}
-
-.stat-value.status.neutral {
-  color: #6c757d;
-}
-
-.chart-container {
-  position: relative;
-  height: 250px;
-  margin-bottom: 16px;
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-}
-
-.chart-legend {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.legend-color {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  border: 1px solid rgba(0,0,0,0.1);
-}
-
-.legend-color.profit {
-  background: rgba(46, 213, 115, 0.8);
-}
-
-.legend-color.loss {
-  background: rgba(255, 107, 107, 0.8);
-}
-
-.legend-color.target-line {
-  background: linear-gradient(90deg, #ff6b6b 50%, transparent 50%);
-  background-size: 8px 2px;
-}
-
-.legend-text {
-  font-size: 12px;
-  color: #495057;
-  font-weight: 500;
-}
-
-/* GENERAL RESPONSIVE IMPROVEMENTS */
-@media (max-width: 600px) {
-  .container {
-    padding: 10px;
-  }
-  .card, .prod-card {
-    padding: 8px;
-    border-radius: 8px;
-  }
-  .grid {
-     gap: 10px;
-     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  }
-  .prod-image {
-    height: 90px;
-    font-size: 11px;
-  }
-  .prod-body {
-    padding: 8px;
-  }
-  /* Product card responsiveness */
-  .product-card {
-    min-width: 140px;
-    max-width: 100%;
-    padding: 10px;
-    margin: 8px 0;
-  }
-  .prod-img-wrap {
-    width: 70px;
-    height: 70px;
-    margin-bottom: 6px;
-  }
-  .prod-title, .prod-meta {
-    font-size: 13px;
-  }
-  #productGrid {
-    gap: 8px;
-  }
-  /* Header responsiveness */
-  .site-header {
-    padding: 12px 0 0 0;
-  }
-  .header-inner {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .brand h1 {
-    font-size: 20px;
-  }
-  /* Search area */
-  .search-area {
-    flex-direction: column;
-    gap: 6px;
-    width: 100%;
-  }
-  .search-area input, .search-area select {
-    min-width: 0;
-    width: 100%;
-    font-size: 15px;
-  }
-  /* Layout columns */
-  main {
-    gap: 10px;
-    margin-top: 8px;
-  }
-  .left-col, .right-col {
-    width: 100%;
-    flex: unset;
-  }
-  /* Bill table */
-  .bill-table thead th, .bill-table tbody td, .bill-table tfoot td {
-    padding: 6px 2px;
-    font-size: 12px;
-  }
-  /* Footer */
-  .footer {
-    padding: 10px 4px;
-    font-size: 13px;
-  }
-  /* Login form tweaks */
-  #loginForm input {
-    font-size: 15px;
-    padding: 10px 10px;
-  }
-  #authContainer {
-    padding: 10px 2vw 10px 2vw;
+// Render a product card for the grid
+function productCardHtml(p) {
+  const stock = getProductStock(p.id);
+  const isOutOfStock = stock <= 0;
+  const isLowStock = stock > 0 && stock <= 5;
+  
+  let stockClass = 'stock-normal';
+  let stockText = `Stock: ${stock}`;
+  
+  if (isOutOfStock) {
+    stockClass = 'stock-out';
+    stockText = 'Out of Stock';
+  } else if (isLowStock) {
+    stockClass = 'stock-low';
+    stockText = `Low Stock: ${stock}`;
   }
   
-  /* Transaction section mobile styles */
-  .transaction-header {
-    flex-direction: column;
-    gap: 8px;
-    align-items: stretch;
-    text-align: center;
+  return `
+    <div class="product-card">
+      <div class="prod-img-wrap">
+        ${p.image ? `<img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" />` : `<div class="no-img">No Image</div>`}
+      </div>
+      <div class="prod-info">
+        <div class="prod-title">${escapeHtml(p.name)}</div>
+        <div class="prod-meta">₹${p.price} | ${escapeHtml(p.category)}</div>
+        <div class="prod-stock ${stockClass}">${stockText}</div>
+        ${p.isPacket && p.packetSize ? `<div class="prod-packet-info">Packet of ${p.packetSize}</div>` : ''}
+        <button class="btn add-to-bill" data-id="${p.id}" ${isOutOfStock ? 'disabled' : ''}>
+          ${isOutOfStock ? 'Out of Stock' : 'Add to Bill'}
+        </button>
+        ${p.isPacket && p.packetSize ? `<button class="btn sell-packet" data-id="${p.id}" ${isOutOfStock ? 'disabled' : ''}>Sell Packet</button>` : ''}
+        <button class="btn remove-prod" data-id="${p.id}">Remove</button>
+      </div>
+    </div>
+  `;
+}
+
+// Add product to cart (don't decrease stock until bill is completed)
+function addToCart(product) {
+  // Check if we can add this item (considering what's already in cart)
+  const currentStock = getProductStock(product.id);
+  const cartItem = cart.find(c => c.id === product.id);
+  const cartQuantity = cartItem ? cartItem.qty : 0;
+  
+  if (currentStock <= cartQuantity) {
+    alert(`Sorry, only ${currentStock} ${product.name} available in stock!`);
+    return;
   }
   
-  .transaction-tabs {
-    justify-content: center;
+  const found = cart.find(c => c.id === product.id);
+  if (found) {
+    found.qty += 1;
+  } else {
+    cart.push({ id: product.id, name: product.name, price: product.price, qty: 1 });
   }
   
-  .tab-btn {
-    flex: 1;
-    max-width: 120px;
+  renderCart();
+}
+
+// Add transaction to Firestore
+async function addTransaction(product) {
+  const now = new Date();
+  const transaction = {
+    productId: product.id,
+    productName: product.name,
+    price: product.price,
+    timestamp: now.toISOString(),
+    date: getDateString(now),
+    user: auth.currentUser ? auth.currentUser.email : null
+  };
+  try {
+    await addDoc(transactionsCol, transaction);
+  } catch (e) {
+    console.error('Error adding transaction to Firestore:', e);
+  }
+}
+
+// Render the cart
+function renderCart() {
+  const billTableBody = document.querySelector("#billTable tbody");
+  billTableBody.innerHTML = cart.map(item => {
+    const sub = item.price * item.qty;
+    // Style for packet label
+    const isPacket = item.isPacket;
+    const nameHtml = isPacket
+      ? `<span>${escapeHtml(item.name.replace(/ \(Packet\)$/,''))}<span class="packet-label-cart"> (Packet)</span></span>`
+      : escapeHtml(item.name);
+    return `
+      <tr data-id="${item.id}">
+        <td>${nameHtml}</td>
+        <td>
+          <input type="number" class="qty-input" value="${item.qty}" min="1" data-item-id="${item.id}" />
+        </td>
+        <td>₹${item.price}</td>
+        <td>₹${sub}</td>
+        <td><button class="btn ghost small-remove">Remove</button></td>
+      </tr>
+    `;
+  }).join("");
+
+  // Attach remove event listeners for cart items
+  document.querySelectorAll('.small-remove').forEach(btn => {
+    btn.onclick = function() {
+      const tr = btn.closest('tr');
+      const id = tr && tr.getAttribute('data-id');
+      if (id) {
+        cart = cart.filter(item => item.id !== id);
+        renderCart();
+      }
+    };
+  });
+  
+  // Attach quantity change listeners
+  document.querySelectorAll('.qty-input').forEach(input => {
+    input.addEventListener('change', function() {
+      const itemId = this.getAttribute('data-item-id');
+      const newQty = Number(this.value) || 1;
+      const cartItem = cart.find(item => item.id === itemId);
+      
+      if (cartItem) {
+        const currentStock = getProductStock(itemId);
+        
+        // Check if we have enough stock for the new quantity
+        if (newQty > currentStock) {
+          alert(`Only ${currentStock} items available in stock!`);
+          this.value = cartItem.qty;
+          return;
+        }
+        
+        cartItem.qty = newQty;
+        updateTotal();
+      }
+    });
+  });
+  
+  // Update total
+  updateTotal();
+}
+
+// Update total amount
+function updateTotal() {
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  document.getElementById("grandTotal").textContent = `₹${total.toLocaleString()}`;
+}
+
+// Bill actions (PDF generation, print, WhatsApp)
+document.getElementById("generatePdf").addEventListener("click", generatePDF);
+document.getElementById("printBtn").addEventListener("click", printBill);
+document.getElementById("whatsappBtn").addEventListener("click", shareOnWhatsApp);
+
+
+
+// Clear Cart button functionality
+document.getElementById("clearBill").addEventListener("click", () => {
+  cart = [];
+  renderCart();
+});
+
+// Complete the sale and decrease stock
+function completeSale() {
+  if (cart.length === 0) {
+    alert('Cart is empty!');
+    return false;
   }
   
-  .transaction-content {
-    max-height: 300px;
+  // Check stock availability for all items
+  for (let item of cart) {
+    if (item.isPacket) {
+      // For packet, check both packet and base product stock
+      const packetProduct = products.find(p => p.id === item.id);
+      const baseProduct = products.find(p => p.name === packetProduct.name && !p.isPacket);
+      const packetStock = getProductStock(packetProduct.id);
+      const baseStock = baseProduct ? getProductStock(baseProduct.id) : 0;
+      if (packetStock < item.qty) {
+        alert(`Insufficient packet stock for ${item.name}. Available: ${packetStock}, Required: ${item.qty}`);
+        return false;
+      }
+      if (!baseProduct || baseStock < item.packetSize * item.qty) {
+        alert(`Insufficient base product stock for ${item.name}. Need ${item.packetSize * item.qty}, available: ${baseStock}`);
+        return false;
+      }
+    } else {
+      const currentStock = getProductStock(item.id);
+      if (currentStock < item.qty) {
+        alert(`Insufficient stock for ${item.name}. Available: ${currentStock}, Required: ${item.qty}`);
+        return false;
+      }
+    }
+  }
+
+  // Decrease stock for all items
+  cart.forEach(item => {
+    if (item.isPacket) {
+      // Decrease packet product stock
+      decreaseStock(item.id, item.qty);
+      // Decrease base product stock
+      const packetProduct = products.find(p => p.id === item.id);
+      const baseProduct = products.find(p => p.name === packetProduct.name && !p.isPacket);
+      if (baseProduct) {
+        decreaseStock(baseProduct.id, item.packetSize * item.qty);
+      }
+      // Track each sold packet as a separate transaction
+      for (let i = 0; i < item.qty; i++) {
+        addTransaction({
+          id: item.id,
+          name: item.name,
+          price: item.price
+        });
+      }
+    } else {
+      decreaseStock(item.id, item.qty);
+      // Track each sold item as a separate transaction
+      for (let i = 0; i < item.qty; i++) {
+        addTransaction({
+          id: item.id,
+          name: item.name,
+          price: item.price
+        });
+      }
+    }
+  });
+  
+  // Log sale completion
+  const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
+  console.log(`Sale completed! ${itemCount} items sold for ₹${totalAmount.toLocaleString()}`);
+  
+  updateTransactionDisplay();
+  return true;
+}
+
+function generatePDF() {
+  // Complete the sale first
+  if (!completeSale()) return;
+  
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let y = 40;
+
+  // Header with colored background
+  doc.setFillColor(123, 31, 162); // purple
+  doc.roundedRect(30, y, pageWidth - 60, 50, 10, 10, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(22);
+  doc.text('Wuroud Bill', pageWidth/2, y + 32, { align: 'center' });
+
+  y += 70;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(12);
+  doc.setTextColor(120,120,120);
+  doc.text(`Mobile: ${document.getElementById("custMobile").value || '-'}`, 40, y);
+
+  y += 18;
+  // Table
+  const head = [['Item', 'Qty', 'Price', 'Subtotal']];
+  // Use Rs. as fallback if ₹ is not supported by the PDF font
+  function safeRupee(amount) {
+    return 'Rs. ' + amount.toLocaleString();
+  }
+  const body = cart.map(i => [
+    i.name,
+    String(i.qty),
+    safeRupee(i.price),
+    safeRupee(i.price * i.qty)
+  ]);
+  doc.autoTable({
+    head: head,
+    body: body,
+    startY: y + 10,
+    theme: 'grid',
+    headStyles: { fillColor: [245, 245, 250], textColor: [123,31,162], fontStyle: 'bold' },
+    styles: { font: 'helvetica', fontSize: 11, cellPadding: 6 },
+    bodyStyles: { textColor: [40,40,40] },
+    tableLineColor: [240,240,240],
+    tableLineWidth: 0.8,
+    margin: { left: 40, right: 40 },
+  });
+
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const finalY = doc.lastAutoTable.finalY;
+
+  // Total summary box
+  doc.setFillColor(248,246,255);
+  doc.roundedRect(pageWidth-210, finalY+20, 160, 38, 8, 8, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(40,40,40);
+  // Draw 'Total' and amount in one line, same color, spaced apart
+  const totalLabel = 'Total';
+  const totalAmount = safeRupee(total);
+  const totalBoxX = pageWidth-210+16;
+  const totalBoxY = finalY+44;
+  doc.text(totalLabel, totalBoxX, totalBoxY);
+  doc.text(totalAmount, pageWidth-60, totalBoxY, { align: 'right' });
+
+  // Footer
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(170,170,170);
+  doc.text('Thank you for shopping with Wuroud!', pageWidth/2, finalY+80, { align: 'center' });
+
+  doc.save(`Wuroud-bill-${Date.now()}.pdf`);
+  
+  // Clear cart after successful PDF generation
+  cart = [];
+  renderCart();
+}
+
+function printBill() {
+  // Complete the sale first
+  if (!completeSale()) return;
+  
+  const w = window.open("", "_blank");
+  const html = printableHtml();
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  w.print();
+  
+  // Clear cart after successful print
+  cart = [];
+  renderCart();
+}
+
+function printableHtml() {
+  const rows = cart.map(i => `
+    <tr>
+      <td>${i.name}</td>
+      <td style="text-align:center">${i.qty}</td>
+      <td>${i.price}</td>
+      <td>${i.price * i.qty}</td>
+    </tr>
+  `).join("");
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+
+  return `
+    <html><head><title>WUROUD BILL</title>
+      <style>
+        body {
+          width: 80mm;
+          margin: 0 auto;
+          font-family: 'Courier New', Courier, monospace;
+          font-size: 12px;
+          color: #000;
+          background: #fff;
+        }
+        .receipt {
+          width: 100%;
+          margin: 0;
+          padding: 0;
+        }
+        .shop-header {
+          text-align: center;
+          font-size: 13px;
+          font-weight: bold;
+          margin-bottom: 4px;
+          margin-top: 0;
+          line-height: 1.3;
+        }
+        .shop-header .shop-name {
+          font-size: 15px;
+          font-weight: bold;
+          letter-spacing: 1px;
+        }
+        .shop-header .shop-address,
+        .shop-header .shop-phone {
+          font-size: 12px;
+          font-weight: normal;
+        }
+        .meta {
+          font-size: 12px;
+          margin-bottom: 4px;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 12px;
+          margin-bottom: 6px;
+        }
+        th, td {
+          padding: 2px 0;
+          text-align: left;
+          border: none;
+        }
+        th {
+          border-bottom: 1px dashed #000;
+          font-weight: bold;
+        }
+        tfoot td {
+          font-weight: bold;
+          font-size: 13px;
+          border-top: 1px solid #000;
+        }
+        .footer {
+          text-align: center;
+          font-size: 12px;
+          margin-top: 8px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="receipt">
+        <div class="shop-header">
+          <div class="shop-name">WUROUD</div>
+          <div class="shop-address">PUTHIRIKKAL, PARAPPANGADI ROAD</div>
+          <div class="shop-phone">Phone: +91 9061706318</div>
+        </div>
+        <div class="meta">Date: ${new Date().toLocaleString()}</div>
+        <div class="meta">Mobile: ${document.getElementById("custMobile").value || '-'}</div>
+        <table>
+          <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Amt</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td colspan="3">TOTAL</td><td>${total}</td></tr></tfoot>
+        </table>
+        <div class="footer">Thank you for shopping with WUROUD!</div>
+      </div>
+    </body></html>
+  `;
+}
+
+function shareOnWhatsApp() {
+  if (cart.length === 0) return alert("Cart empty");
+  
+  // Complete the sale first
+  if (!completeSale()) return;
+  const phone = document.getElementById("custMobile").value.trim();
+  let message = `*Wuroud Bill*%0A`;
+
+  cart.forEach(i => {
+    message += `${i.name} x${i.qty} = ₹${(i.price * i.qty).toLocaleString()}%0A`;
+  });
+
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  message += `%0ATotal: ₹${total.toLocaleString()}`;
+  const url = phone ? `https://wa.me/${phone}?text=${message}` : `https://wa.me/?text=${message}`;
+
+  window.open(url, '_blank');
+  
+  // Clear cart after successful WhatsApp share
+  cart = [];
+  renderCart();
+}
+
+// Helper function to escape HTML characters
+function escapeHtml(str) {
+  return String(str || "").replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[s]);
+}
+
+// Enhanced stock checking function for notification bell
+function checkLowStockAlerts() {
+  const lowStockProducts = [];
+  const outOfStockProducts = [];
+  
+  products.forEach(product => {
+    const stock = getProductStock(product.id);
+    if (stock === 0) {
+      outOfStockProducts.push(product);
+    } else if (stock <= LOW_STOCK_THRESHOLD && stock > 0) {
+      lowStockProducts.push({...product, stock});
+    }
+  });
+  
+  // Log alerts to console for debugging
+  lowStockProducts.forEach(product => {
+    console.log(`Low Stock Alert: ${product.name} has only ${product.stock} items left!`);
+  });
+  
+  outOfStockProducts.forEach(product => {
+    console.log(`Out of Stock: ${product.name} is completely out of stock!`);
+  });
+  
+  // Update notification system if new alerts are found
+  const totalAlerts = lowStockProducts.length + outOfStockProducts.length;
+  const previousAlerts = notificationState.lowStockItems.length;
+  
+  if (totalAlerts > previousAlerts) {
+    // New alerts found, reset viewed state
+    notificationState.hasBeenViewed = false;
   }
   
-  .transaction-item {
-    padding: 8px 10px;
+  // Update notifications
+  updateNotifications();
+  
+  return { lowStock: lowStockProducts.length, outOfStock: outOfStockProducts.length };
+}
+
+// Global functions
+window.checkLowStockAlerts = checkLowStockAlerts;
+
+// Transaction Management Functions
+function getDateString(date) {
+  return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+}
+
+function getTodayString() {
+  return getDateString(new Date());
+}
+
+function saveTransactionsToStorage() {
+  localStorage.setItem('wuroud_transactions', JSON.stringify(transactions));
+  localStorage.setItem('wuroud_daily_totals', JSON.stringify(dailyTotals));
+}
+
+function loadTransactionsFromStorage() {
+  const savedTransactions = localStorage.getItem('wuroud_transactions');
+  const savedTotals = localStorage.getItem('wuroud_daily_totals');
+  
+  if (savedTransactions) {
+    transactions = JSON.parse(savedTransactions);
+  }
+  if (savedTotals) {
+    dailyTotals = JSON.parse(savedTotals);
   }
   
-  .transaction-product {
-    font-size: 13px;
+  // Clean up old transactions (remove items older than today but keep totals)
+  cleanupOldTransactions();
+}
+
+function cleanupOldTransactions() {
+  const today = getTodayString();
+  const todayTransactions = transactions.filter(t => t.date === today);
+  
+  // Calculate total for completed days and save to dailyTotals
+  const groupedByDate = {};
+  transactions.forEach(t => {
+    if (t.date !== today) {
+      if (!groupedByDate[t.date]) groupedByDate[t.date] = 0;
+      groupedByDate[t.date] += t.price;
+    }
+  });
+  
+  // Update dailyTotals
+  Object.keys(groupedByDate).forEach(date => {
+    dailyTotals[date] = groupedByDate[date];
+  });
+  
+  // Keep only today's transactions
+  transactions = todayTransactions;
+  
+  // Keep only last 30 days of daily totals
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const cutoffDate = getDateString(thirtyDaysAgo);
+  
+  Object.keys(dailyTotals).forEach(date => {
+    if (date < cutoffDate) {
+      delete dailyTotals[date];
+    }
+  });
+  
+  saveTransactionsToStorage();
+}
+
+// Remove transaction from Firestore
+async function removeTransaction(transactionId, productId) {
+  try {
+    await deleteDoc(doc(db, "transactions", transactionId));
+    if (productId) {
+      increaseStock(productId, 1);
+    }
+  } catch (e) {
+    console.error('Error removing transaction from Firestore:', e);
+  }
+}
+
+function getTodayTotal() {
+  return transactions.reduce((total, t) => {
+    if (t.date === getTodayString()) {
+      return total + t.price;
+    }
+    return total;
+  }, 0);
+}
+
+function getMonthTotal() {
+  const todayTotal = getTodayTotal();
+  const dailyTotal = Object.values(dailyTotals).reduce((sum, total) => sum + total, 0);
+  return todayTotal + dailyTotal;
+}
+
+function updateTransactionDisplay() {
+  updateTodayTransactions();
+  updateMonthTransactions();
+  updatePerformanceStats();
+  updatePerformanceChart();
+}
+
+function updateTodayTransactions() {
+  const todayTransactionsList = document.getElementById('todayTransactionsList');
+  const todayTotal = document.getElementById('todayTotal');
+  const todaysTransactions = transactions.filter(t => t.date === getTodayString());
+  if (todaysTransactions.length === 0) {
+    todayTransactionsList.innerHTML = '<p class="no-transactions">No transactions today</p>';
+  } else {
+    todayTransactionsList.innerHTML = todaysTransactions.map(t => `
+      <div class="transaction-item">
+        <div class="transaction-info">
+          <span class="transaction-product">${escapeHtml(t.productName)}</span>
+          <span class="transaction-time">${new Date(t.timestamp).toLocaleTimeString()}</span>
+        </div>
+        <div class="transaction-amount">₹${t.price}</div>
+        <button class="transaction-remove" data-transaction-id="${t.id}" data-product-id="${t.productId}">×</button>
+      </div>
+    `).join('');
+    // Add event listeners to remove buttons
+    document.querySelectorAll('.transaction-remove').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const transactionId = this.getAttribute('data-transaction-id');
+        const productId = this.getAttribute('data-product-id');
+        removeTransaction(transactionId, productId);
+      });
+    });
+  }
+  todayTotal.textContent = `₹${getTodayTotal().toLocaleString()}`;
+}
+
+function updateMonthTransactions() {
+  const monthTransactionsList = document.getElementById('monthTransactionsList');
+  const monthTotal = document.getElementById('monthTotal');
+  
+  // Get last 30 days
+  const last30Days = [];
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    last30Days.push(getDateString(date));
   }
   
-  .transaction-time {
-    font-size: 11px;
+  const monthHtml = last30Days.map(date => {
+    const isToday = date === getTodayString();
+    const total = isToday ? getTodayTotal() : (dailyTotals[date] || 0);
+    
+    if (total === 0) return '';
+    
+    return `
+      <div class="daily-summary">
+        <div class="daily-date">
+          ${isToday ? 'Today' : new Date(date).toLocaleDateString()}
+          ${isToday ? ` (${transactions.filter(t => t.date === date).length} items)` : ''}
+        </div>
+        <div class="daily-amount">₹${total.toLocaleString()}</div>
+      </div>
+    `;
+  }).filter(html => html !== '').join('');
+  
+  monthTransactionsList.innerHTML = monthHtml || '<p class="no-transactions">No transactions this month</p>';
+  monthTotal.textContent = `₹${getMonthTotal().toLocaleString()}`;
+}
+
+// Authentication State Management
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // User is signed in
+    console.log("User is logged in:", user.email);
+    showAuthUI(false);
+    initializeStockData(); // Initialize stock data
+    loadProducts();
+    listenToTransactions();
+    // Force re-render after stock initialization
+    setTimeout(() => {
+      renderProducts();
+      updateStockDisplay();
+    }, 100);
+  } else {
+    // User is signed out
+    console.log("User is logged out");
+    showAuthUI(true);
+    productGrid.innerHTML = '';
+    cart = [];
+    transactions = [];
+    // productStocks will be reloaded from Firebase on next login
+    renderCart();
+    updateTransactionDisplay();
+  }
+});
+
+// Listen to Firestore for transactions
+function listenToTransactions() {
+  const q = query(transactionsCol, orderBy("timestamp", "desc"));
+  onSnapshot(q, snap => {
+    transactions = [];
+    snap.forEach(docSnap => {
+      const data = docSnap.data();
+      transactions.push({
+        id: docSnap.id,
+        ...data
+      });
+    });
+    updateTransactionDisplay();
+    updateLeaderboards();
+  }, error => {
+    console.error("Error loading transactions from Firestore:", error);
+  });
+}
+
+// Leaderboard logic
+function updateLeaderboards() {
+  // Weekly leaderboard: last 7 days
+  const now = new Date();
+  const weekAgo = new Date();
+  weekAgo.setDate(now.getDate() - 6); // 7 days including today
+  const weekStart = weekAgo.toISOString().split('T')[0];
+
+  // Monthly leaderboard: last 30 days
+  const monthAgo = new Date();
+  monthAgo.setDate(now.getDate() - 29); // 30 days including today
+  const monthStart = monthAgo.toISOString().split('T')[0];
+
+  // Helper to count product sales
+  function getTopSold(transactions, startDate) {
+    const sales = {};
+    transactions.forEach(t => {
+      if (t.date >= startDate) {
+        if (!sales[t.productId]) {
+          sales[t.productId] = { name: t.productName, count: 0 };
+        }
+        sales[t.productId].count += 1;
+      }
+    });
+    // Convert to array and sort by count desc
+    return Object.entries(sales)
+      .map(([id, info]) => ({ id, name: info.name, count: info.count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5); // Top 5
+  }
+
+  const weeklyTop = getTopSold(transactions, weekStart);
+  const monthlyTop = getTopSold(transactions, monthStart);
+
+  // Render leaderboards
+  const weeklyEl = document.getElementById('weeklyLeaderboard');
+  const monthlyEl = document.getElementById('monthlyLeaderboard');
+
+  function renderLeaderboard(list, el) {
+    if (!el) return;
+    if (list.length === 0) {
+      el.innerHTML = '<p class="no-data">No sales in this period</p>';
+      return;
+    }
+    el.innerHTML = list.map((item) => `
+      <div class="leaderboard-item" style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
+        <span class="product-name" style="flex: 1; font-weight: 500; color: #444; font-size: 16px; letter-spacing: 0.1px;">${escapeHtml(item.name)}</span>
+        <span class="sold-count" style="font-size: 14px; color: #28a745; font-weight: 600;">${item.count} sold</span>
+      </div>
+    `).join('');
+  }
+
+  renderLeaderboard(weeklyTop, weeklyEl);
+  renderLeaderboard(monthlyTop, monthlyEl);
+}
+
+// Tab switching functionality
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize notification bell
+  initializeNotificationBell();
+  
+  // Initialize performance chart
+  setTimeout(() => {
+    initializePerformanceChart();
+  }, 100); // Small delay to ensure DOM is fully rendered
+  
+  // Main navigation tabs
+  const billingTab = document.getElementById('billingTab');
+  const transactionsTab = document.getElementById('transactionsTab');
+  const stockTab = document.getElementById('stockTab');
+  
+  if (billingTab) billingTab.addEventListener('click', () => showMainSection('billing'));
+  if (transactionsTab) transactionsTab.addEventListener('click', () => showMainSection('transactions'));
+  if (stockTab) stockTab.addEventListener('click', () => showMainSection('stock'));
+  
+  // Transaction sub-tabs
+  const todayTransactionTab = document.getElementById('todayTransactionTab');
+  const monthTransactionTab = document.getElementById('monthTransactionTab');
+  
+  if (todayTransactionTab) {
+    todayTransactionTab.addEventListener('click', function() {
+      showTransactionSubTab('today');
+    });
   }
   
-  .transaction-amount {
-    font-size: 13px;
+  if (monthTransactionTab) {
+    monthTransactionTab.addEventListener('click', function() {
+      showTransactionSubTab('month');
+    });
   }
   
-  .transaction-remove {
-    width: 22px;
-    height: 22px;
-    font-size: 14px;
+  // Legacy transaction tabs (for billing section)
+  const todayTab = document.getElementById('todayTab');
+  const monthTab = document.getElementById('monthTab');
+  
+  if (todayTab) {
+    todayTab.addEventListener('click', function() {
+      showTransactionTab('today');
+    });
   }
   
-  .daily-summary {
-    padding: 10px 12px;
+  if (monthTab) {
+    monthTab.addEventListener('click', function() {
+      showTransactionTab('month');
+    });
   }
   
-  .daily-date, .daily-amount {
-    font-size: 13px;
+  // Stock filters and search (input only, always visible)
+  const stockCategoryFilter = document.getElementById('stockCategoryFilter');
+  const stockStatusFilter = document.getElementById('stockStatusFilter');
+  const stockSearchInput = document.getElementById('stockSearchInput');
+
+  if (stockCategoryFilter) stockCategoryFilter.addEventListener('change', updateStockDisplay);
+  if (stockStatusFilter) stockStatusFilter.addEventListener('change', updateStockDisplay);
+
+  if (stockSearchInput) {
+    stockSearchInput.addEventListener('input', updateStockDisplay);
+    stockSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        updateStockDisplay();
+      }
+    });
+  }
+});
+
+// Main section switching function
+function showMainSection(section) {
+  // Hide all sections
+  document.querySelectorAll('.main-section').forEach(sec => {
+    sec.classList.remove('active');
+  });
+  
+  // Remove active class from all nav tabs
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  
+  // Show selected section
+  const sectionElement = document.getElementById(section + 'Section');
+  const tabElement = document.getElementById(section + 'Tab');
+  
+  if (sectionElement) sectionElement.classList.add('active');
+  if (tabElement) tabElement.classList.add('active');
+  
+  // Update content based on section
+  if (section === 'stock') {
+    updateStockDisplay();
+    populateStockFilters();
+    // Check for low stock alerts when viewing stock section
+    setTimeout(() => {
+      const alerts = checkLowStockAlerts();
+      if (alerts.lowStock === 0 && alerts.outOfStock === 0) {
+        showNotification('✅ All products have adequate stock levels!', 'success', 3000);
+      }
+    }, 500);
+  } else if (section === 'transactions') {
+    updateTransactionSectionDisplay();
+  }
+}
+
+// Transaction section sub-tab switching
+function showTransactionSubTab(tab) {
+  const todayTab = document.getElementById('todayTransactionTab');
+  const monthTab = document.getElementById('monthTransactionTab');
+  const todayView = document.getElementById('todayTransactionView');
+  const monthView = document.getElementById('monthTransactionView');
+  
+  if (tab === 'today') {
+    if (todayTab) todayTab.classList.add('active');
+    if (monthTab) monthTab.classList.remove('active');
+    if (todayView) todayView.classList.remove('hidden');
+    if (monthView) monthView.classList.add('hidden');
+  } else {
+    if (monthTab) monthTab.classList.add('active');
+    if (todayTab) todayTab.classList.remove('active');
+    if (monthView) monthView.classList.remove('hidden');
+    if (todayView) todayView.classList.add('hidden');
+  }
+}
+
+// Update transaction section display
+function updateTransactionSectionDisplay() {
+  // Update today's data
+  const todayRevenue = document.getElementById('todayRevenue');
+  const todayItemCount = document.getElementById('todayItemCount');
+  const todayDetails = document.getElementById('todayTransactionDetails');
+  
+  if (todayRevenue) todayRevenue.textContent = `₹${getTodayTotal().toLocaleString()}`;
+  if (todayItemCount) todayItemCount.textContent = transactions.filter(t => t.date === getTodayString()).length.toString();
+  
+  const todaysTransactions = transactions.filter(t => t.date === getTodayString());
+  if (todayDetails) {
+    if (todaysTransactions.length === 0) {
+      todayDetails.innerHTML = '<p class="no-data">No transactions today</p>';
+    } else {
+      todayDetails.innerHTML = todaysTransactions.map(t => `
+        <div class="transaction-item">
+          <div class="transaction-info">
+            <span class="transaction-product">${escapeHtml(t.productName)}</span>
+            <span class="transaction-time">${new Date(t.timestamp).toLocaleTimeString()}</span>
+          </div>
+          <div class="transaction-amount">₹${t.price.toLocaleString()}</div>
+        </div>
+      `).join('');
+    }
   }
   
-  .summary-label, .summary-amount {
-    font-size: 13px;
+  // Update month's data
+  const monthRevenue = document.getElementById('monthRevenue');
+  const monthItemCount = document.getElementById('monthItemCount');
+  const monthDetails = document.getElementById('monthTransactionDetails');
+  
+  const totalRevenue = getMonthTotal();
+  const totalItems = transactions.length + Object.keys(dailyTotals).length;
+  
+  if (monthRevenue) monthRevenue.textContent = `₹${totalRevenue.toLocaleString()}`;
+  if (monthItemCount) monthItemCount.textContent = totalItems.toString();
+  
+  if (monthDetails) {
+    // Show daily summaries for the month
+    const last30Days = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      last30Days.push(getDateString(date));
+    }
+    
+    const monthHtml = last30Days.map(date => {
+      const isToday = date === getTodayString();
+      const total = isToday ? getTodayTotal() : (dailyTotals[date] || 0);
+      
+      if (total === 0) return '';
+      
+      return `
+        <div class="daily-summary-item">
+          <div class="daily-date">
+            ${isToday ? 'Today' : new Date(date).toLocaleDateString()}
+          </div>
+          <div class="daily-amount">₹${total.toLocaleString()}</div>
+        </div>
+      `;
+    }).filter(html => html !== '').join('');
+    
+    monthDetails.innerHTML = monthHtml || '<p class="no-data">No transactions this month</p>';
+  }
+}
+
+// Stock management functions
+let productStocks = {}; // Track product stock levels
+
+function initializeStockData() {
+  console.log("🔍 Initializing stock data from Firebase...");
+  productStocks = {}; // Reset stock data, will be loaded from Firebase
+  
+  // Check for low stock alerts after initializing stock data
+  setTimeout(() => {
+    if (products.length > 0) {
+      console.log("📊 Current products count:", products.length);
+      console.log("📊 Current productStocks:", productStocks);
+      checkLowStockAlerts();
+    }
+  }, 3000); // Delay to ensure products are loaded
+}
+
+// Function to set initial stock for products that don't have stock values
+async function setInitialStockForAllProducts() {
+  console.log("🔄 Setting initial stock for products without stock values...");
+  
+  for (const product of products) {
+    if (product.stock === undefined || product.stock === 0) {
+      try {
+        const productRef = doc(db, "products", product.id);
+        await updateDoc(productRef, {
+          stock: 10 // Set initial stock to 10 items
+        });
+        console.log(`✅ Set initial stock for ${product.name}: 10 items`);
+      } catch (error) {
+        console.error(`❌ Error setting stock for ${product.name}:`, error);
+      }
+    }
   }
   
-  /* Performance chart mobile styles */
-  .performance-header {
-    flex-direction: column;
-    gap: 12px;
-    align-items: stretch;
+  console.log("🎉 Initial stock setup completed!");
+}
+
+function getProductStock(productId) {
+  return productStocks[productId] || 0;
+}
+
+async function updateProductStock(productId, newStock) {
+  const oldStock = productStocks[productId] || 0;
+  const updatedStock = Math.max(0, newStock);
+  productStocks[productId] = updatedStock;
+  
+  // Save to Firebase
+  try {
+    const productRef = doc(db, "products", productId);
+    await updateDoc(productRef, {
+      stock: updatedStock
+    });
+    console.log(`💾 Stock updated in Firebase for product ${productId}: ${updatedStock}`);
+  } catch (error) {
+    console.error("❌ Error updating stock in Firebase:", error);
   }
   
-  .performance-stats {
-    flex-direction: row;
-    justify-content: space-between;
-    min-width: unset;
-    gap: 6px;
+  // Check for stock level changes and show notifications
+  const product = products.find(p => p.id === productId);
+  if (product) {
+    // Stock decreased and now low/out
+    if (oldStock > updatedStock) {
+      if (updatedStock === 0) {
+        console.log(`❌ ${product.name} is now out of stock!`);
+      } else if (updatedStock <= LOW_STOCK_THRESHOLD) {
+        console.log(`⚠️ ${product.name} is now low stock: ${updatedStock} items`);
+      }
+    }
+    // Stock increased from low/out to good levels
+    else if (oldStock <= LOW_STOCK_THRESHOLD && updatedStock > LOW_STOCK_THRESHOLD) {
+      console.log(`✅ ${product.name} stock replenished successfully! (${updatedStock} items)`);
+    }
+  }
+  updateStockDisplay();
+  // Also re-render product cards to show updated stock
+  renderProducts();
+}
+
+function decreaseStock(productId, quantity = 1) {
+  const currentStock = getProductStock(productId);
+  updateProductStock(productId, currentStock - quantity);
+}
+
+function increaseStock(productId, quantity = 1) {
+  const currentStock = getProductStock(productId);
+  updateProductStock(productId, currentStock + quantity);
+}
+
+function populateStockFilters() {
+  const categoryFilter = document.getElementById('stockCategoryFilter');
+  if (!categoryFilter) return;
+  
+  const categories = Array.from(new Set(products.map(p => p.category))).filter(Boolean);
+  categoryFilter.innerHTML = '<option value="all">All Categories</option>' +
+    categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join("");
+}
+
+function updateStockDisplay() {
+  const stockTableBody = document.querySelector('#stockTable tbody');
+  const totalProductsEl = document.getElementById('totalProducts');
+  const lowStockCountEl = document.getElementById('lowStockCount');
+  const outOfStockCountEl = document.getElementById('outOfStockCount');
+  const stockSearchInput = document.getElementById('stockSearchInput');
+  if (!stockTableBody) return;
+
+  // Get filter values
+  const categoryFilter = document.getElementById('stockCategoryFilter')?.value || 'all';
+  const statusFilter = document.getElementById('stockStatusFilter')?.value || 'all';
+  const searchTerm = stockSearchInput ? stockSearchInput.value.trim().toLowerCase() : '';
+
+  // Filter products
+  let filteredProducts = products.filter(product => {
+    const categoryMatch = categoryFilter === 'all' || product.category === categoryFilter;
+    const stock = getProductStock(product.id);
+    let statusMatch = true;
+    if (statusFilter === 'low') {
+      statusMatch = stock > 0 && stock <= 5;
+    } else if (statusFilter === 'out') {
+      statusMatch = stock === 0;
+    }
+    const nameMatch = !searchTerm || (product.name && product.name.toLowerCase().includes(searchTerm));
+    return categoryMatch && statusMatch && nameMatch;
+  });
+
+  // Generate table rows
+  stockTableBody.innerHTML = filteredProducts.map(product => {
+    const stock = getProductStock(product.id);
+    let statusClass = 'in-stock';
+    let statusText = 'In Stock';
+    if (stock === 0) {
+      statusClass = 'out-of-stock';
+      statusText = 'Out of Stock';
+    } else if (stock <= 5) {
+      statusClass = 'low-stock';
+      statusText = 'Low Stock';
+    }
+    return `
+      <tr>
+        <td>
+          <div class="stock-product-info">
+            <div class="stock-product-image">
+              ${product.image ? `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" />` : 'No Image'}
+            </div>
+            <div class="stock-product-details">
+              <div class="stock-product-name">${escapeHtml(product.name)}</div>
+            </div>
+          </div>
+        </td>
+        <td>${escapeHtml(product.category)}</td>
+        <td>₹${product.price.toLocaleString()}</td>
+        <td>
+          <span class="stock-quantity">${stock}</span>
+        </td>
+        <td>
+          <span class="stock-status ${statusClass}">${statusText}</span>
+        </td>
+        <td>
+          <div class="stock-actions">
+            <button class="stock-btn restock" onclick="restockProduct('${product.id}')">
+              Restock
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  // Update statistics
+  const totalProducts = products.length;
+  const lowStockCount = products.filter(p => {
+    const stock = getProductStock(p.id);
+    return stock > 0 && stock <= 5;
+  }).length;
+  const outOfStockCount = products.filter(p => getProductStock(p.id) === 0).length;
+
+  if (totalProductsEl) totalProductsEl.textContent = totalProducts;
+  if (lowStockCountEl) lowStockCountEl.textContent = lowStockCount;
+  if (outOfStockCountEl) outOfStockCountEl.textContent = outOfStockCount;
+}
+
+// Global function for restocking (called from HTML)
+window.restockProduct = function(productId) {
+  const quantity = prompt('Enter quantity to add to stock:', '10');
+  if (quantity && !isNaN(quantity) && Number(quantity) > 0) {
+    const currentStock = getProductStock(productId);
+    updateProductStock(productId, currentStock + Number(quantity));
+    alert('Stock updated successfully!');
+  }
+};
+
+function showTransactionTab(tab) {
+  const todayTab = document.getElementById('todayTab');
+  const monthTab = document.getElementById('monthTab');
+  const todayContent = document.getElementById('todayTransactions');
+  const monthContent = document.getElementById('monthTransactions');
+  
+  if (tab === 'today') {
+    todayTab.classList.add('active');
+    monthTab.classList.remove('active');
+    todayContent.classList.remove('hidden');
+    monthContent.classList.add('hidden');
+  } else {
+    monthTab.classList.add('active');
+    todayTab.classList.remove('active');
+    monthContent.classList.remove('hidden');
+    todayContent.classList.add('hidden');
+  }
+}
+
+// Performance Chart Functions
+function initializePerformanceChart() {
+  const ctx = document.getElementById('performanceChart');
+  if (!ctx) {
+    console.log('Performance chart canvas not found');
+    return;
+  }
+
+  // Check if Chart.js is available
+  if (typeof Chart === 'undefined') {
+    console.error('Chart.js library not loaded');
+    return;
+  }
+
+  // Get last 7 days data for the chart
+  const chartData = getLast7DaysData();
+  
+  performanceChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: chartData.labels,
+      datasets: [{
+        label: 'Daily Revenue',
+        data: chartData.values,
+        backgroundColor: chartData.colors,
+        borderColor: chartData.borderColors,
+        borderWidth: 2,
+        borderRadius: 4,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          titleColor: '#fff',
+          bodyColor: '#fff',
+          borderColor: '#ddd',
+          borderWidth: 1,
+          callbacks: {
+            label: function(context) {
+              const value = context.parsed.y;
+              const status = value >= DAILY_TARGET ? 'Profit' : 'Loss';
+              const difference = Math.abs(value - DAILY_TARGET);
+              return [
+                `Revenue: ₹${value.toLocaleString()}`,
+                `${status}: ₹${difference.toLocaleString()}`
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return '₹' + value.toLocaleString();
+            }
+          },
+          grid: {
+            color: 'rgba(0, 0, 0, 0.1)'
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          }
+        }
+      },
+      animation: {
+        duration: 800,
+        easing: 'easeInOutQuart'
+      }
+    },
+    plugins: [{
+      id: 'targetLine',
+      afterDraw: function(chart) {
+        const ctx = chart.ctx;
+        const yAxis = chart.scales.y;
+        const targetY = yAxis.getPixelForValue(DAILY_TARGET);
+        
+        ctx.save();
+        ctx.strokeStyle = '#ff6b6b';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(chart.chartArea.left, targetY);
+        ctx.lineTo(chart.chartArea.right, targetY);
+        ctx.stroke();
+        ctx.restore();
+        
+        // Add target label
+        ctx.save();
+        ctx.fillStyle = '#ff6b6b';
+        ctx.font = '12px Inter, sans-serif';
+        ctx.fillText('Target: ₹2,000', chart.chartArea.right - 100, targetY - 8);
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+function getLast7DaysData() {
+  const days = [];
+  const values = [];
+  const colors = [];
+  const borderColors = [];
+  
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateString = getDateString(date);
+    
+    // Format day label
+    const dayLabel = i === 0 ? 'Today' : 
+                    i === 1 ? 'Yesterday' : 
+                    date.toLocaleDateString('en-US', { weekday: 'short' });
+    
+    days.push(dayLabel);
+    
+    // Get revenue for this day
+    const revenue = i === 0 ? getTodayTotal() : (dailyTotals[dateString] || 0);
+    values.push(revenue);
+    
+    // Set colors based on profit/loss
+    if (revenue >= DAILY_TARGET) {
+      colors.push('rgba(46, 213, 115, 0.8)'); // Green for profit
+      borderColors.push('rgba(46, 213, 115, 1)');
+    } else {
+      colors.push('rgba(255, 107, 107, 0.8)'); // Red for loss
+      borderColors.push('rgba(255, 107, 107, 1)');
+    }
   }
   
-  .stat-item {
-    flex-direction: column;
-    gap: 2px;
-    padding: 6px 8px;
-    text-align: center;
-    flex: 1;
+  return { labels: days, values, colors, borderColors };
+}
+
+function updatePerformanceChart() {
+  if (!performanceChart) return;
+  
+  const chartData = getLast7DaysData();
+  performanceChart.data.labels = chartData.labels;
+  performanceChart.data.datasets[0].data = chartData.values;
+  performanceChart.data.datasets[0].backgroundColor = chartData.colors;
+  performanceChart.data.datasets[0].borderColor = chartData.borderColors;
+  performanceChart.update('none'); // No animation for updates
+}
+
+function updatePerformanceStats() {
+  const todayTotal = getTodayTotal();
+  const todayPerformanceEl = document.getElementById('todayPerformance');
+  const performanceStatusEl = document.getElementById('performanceStatus');
+  
+  if (todayPerformanceEl) {
+    todayPerformanceEl.textContent = `₹${todayTotal.toLocaleString()}`;
   }
   
-  .stat-label, .stat-value {
-    font-size: 11px;
-  }
-  
-  .chart-container {
-    height: 200px;
-    padding: 12px;
-  }
-  
-  .chart-legend {
-    gap: 12px;
-    padding: 8px;
-  }
-  
-  .legend-item {
-    gap: 4px;
-  }
-  
-  .legend-color {
-    width: 12px;
-    height: 12px;
-  }
-  
-  .legend-text {
-    font-size: 11px;
+  if (performanceStatusEl) {
+    if (todayTotal >= DAILY_TARGET) {
+      const profit = todayTotal - DAILY_TARGET;
+      performanceStatusEl.textContent = `Profit +₹${profit.toLocaleString()}`;
+      performanceStatusEl.className = 'stat-value status profit';
+    } else {
+      const loss = DAILY_TARGET - todayTotal;
+      performanceStatusEl.textContent = `Need ₹${loss.toLocaleString()}`;
+      performanceStatusEl.className = 'stat-value status loss';
+    }
   }
 }
