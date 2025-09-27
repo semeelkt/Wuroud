@@ -1170,7 +1170,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Stock filters and search (no icon, input always visible)
+  // Stock filters and search (input only, always visible)
   const stockCategoryFilter = document.getElementById('stockCategoryFilter');
   const stockStatusFilter = document.getElementById('stockStatusFilter');
   const stockSearchInput = document.getElementById('stockSearchInput');
@@ -1179,9 +1179,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (stockStatusFilter) stockStatusFilter.addEventListener('change', updateStockDisplay);
 
   if (stockSearchInput) {
-    // Search on input
     stockSearchInput.addEventListener('input', updateStockDisplay);
-    // Search on Enter (optional, for consistency)
     stockSearchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         updateStockDisplay();
