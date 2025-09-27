@@ -1,3 +1,28 @@
+/* Packet and Single Price Fields Styling */
+#packetPriceWrap, #singlePriceWrap {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+#packetPriceWrap label, #singlePriceWrap label {
+  display: block;
+  font-size: 14px;
+  color: #444;
+  margin-bottom: 2px;
+}
+#packetPriceInput, #singlePriceInput {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+#packetPriceInput:focus, #singlePriceInput:focus {
+  border-color: #7c3aed;
+  outline: none;
+}
 /* Cart packet label style */
 .packet-label-cart {
   font-size: 13px;

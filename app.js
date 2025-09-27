@@ -42,6 +42,12 @@ const maxPrice = document.getElementById("maxPrice");
 const isPacketCheckbox = document.getElementById("isPacketCheckbox");
 const packetSizeWrap = document.getElementById("packetSizeWrap");
 const packetSizeInput = document.getElementById("packetSizeInput");
+const singleStockWrap = document.getElementById("singleStockWrap");
+const singleStockInput = document.getElementById("singleStockInput");
+const packetPriceWrap = document.getElementById("packetPriceWrap");
+const packetPriceInput = document.getElementById("packetPriceInput");
+const singlePriceWrap = document.getElementById("singlePriceWrap");
+const singlePriceInput = document.getElementById("singlePriceInput");
 
 // Filter/search listeners
 searchInput.addEventListener("input", renderProducts);
@@ -50,10 +56,16 @@ minPrice.addEventListener("input", renderProducts);
 maxPrice.addEventListener("input", renderProducts);
 
 // Show/hide packet size input
-if (isPacketCheckbox && packetSizeWrap) {
+if (isPacketCheckbox && packetSizeWrap && singleStockWrap) {
   isPacketCheckbox.addEventListener("change", function() {
     packetSizeWrap.style.display = this.checked ? "block" : "none";
+    singleStockWrap.style.display = this.checked ? "block" : "none";
     if (!this.checked && packetSizeInput) packetSizeInput.value = "";
+    if (!this.checked && singleStockInput) singleStockInput.value = "";
+    packetPriceWrap.style.display = this.checked ? "block" : "none";
+    singlePriceWrap.style.display = this.checked ? "block" : "none";
+    if (!this.checked && packetPriceInput) packetPriceInput.value = "";
+    if (!this.checked && singlePriceInput) singlePriceInput.value = "";
   });
 }
 const loginForm = document.getElementById("loginForm");
@@ -311,10 +323,15 @@ addBtn.addEventListener("click", async () => {
   const user = auth.currentUser;
   const isPacket = isPacketCheckbox && isPacketCheckbox.checked;
   const packetSize = isPacket && packetSizeInput ? Number(packetSizeInput.value) : null;
+  const singleStock = isPacket && singleStockInput ? Number(singleStockInput.value) : null;
 
   if (!name || !price) return alert("Please enter product name and price.");
-  if (stock < 0) return alert("Stock quantity cannot be negative.");
-  if (isPacket && (!packetSize || packetSize < 1)) return alert("Please enter a valid packet size.");
+  if (isPacket) {
+    if (!packetSize || packetSize < 1) return alert("Please enter a valid packet size.");
+    if (singleStock === null || singleStock < 0) return alert("Please enter a valid single item stock.");
+  } else {
+    if (stock < 0) return alert("Stock quantity cannot be negative.");
+  }
 
   if (user) {
     await addDoc(productsCol, {
@@ -322,7 +339,7 @@ addBtn.addEventListener("click", async () => {
       price,
       category,
       image: image || "",
-      stock: stock,
+      stock: isPacket ? singleStock : stock,
       isPacket: !!isPacket,
       packetSize: isPacket ? packetSize : null,
       createdAt: Date.now(),
@@ -335,7 +352,9 @@ addBtn.addEventListener("click", async () => {
     pImage.value = "";
     if (isPacketCheckbox) isPacketCheckbox.checked = false;
     if (packetSizeInput) packetSizeInput.value = "";
+    if (singleStockInput) singleStockInput.value = "";
     if (packetSizeWrap) packetSizeWrap.style.display = "none";
+    if (singleStockWrap) singleStockWrap.style.display = "none";
     loadProducts();
   } else {
     alert("Please log in to add products.");
@@ -389,13 +408,21 @@ function renderProducts() {
   const min = minPrice.value ? Number(minPrice.value) : -Infinity;
   const max = maxPrice.value ? Number(maxPrice.value) : Infinity;
 
-  const filtered = products.filter(p => {
+  // Only show each product once (ignore duplicates by name)
+  const uniqueProducts = [];
+  const seenNames = new Set();
+  for (const p of products) {
+    if (!seenNames.has(p.name.toLowerCase())) {
+      uniqueProducts.push(p);
+      seenNames.add(p.name.toLowerCase());
+    }
+  }
+  const filtered = uniqueProducts.filter(p => {
     const nameMatch = p.name.toLowerCase().includes(qName);
     const catMatch = qCat === "all" ? true : p.category === qCat;
     const priceMatch = p.price >= min && p.price <= max;
     return nameMatch && catMatch && priceMatch;
   });
-
   console.log("Rendering products:", filtered);
   productGrid.innerHTML = filtered.map(p => productCardHtml(p)).join("");
   attachProductCardListeners();
@@ -403,12 +430,15 @@ function renderProducts() {
 
 // Attach event listeners to product cards
 function attachProductCardListeners() {
+
   document.querySelectorAll(".add-to-bill").forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
       const product = products.find(p => p.id === id);
       if (!product) return;
-      addToCart(product);
+      // Use single price if available, else fallback to product.price
+      const price = (typeof product.singlePrice === 'number' && !isNaN(product.singlePrice)) ? product.singlePrice : product.price;
+      addToCart(product, false, price);
     };
   });
 
@@ -416,20 +446,27 @@ function attachProductCardListeners() {
   document.querySelectorAll(".sell-packet").forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
-      const packetProduct = products.find(p => p.id === id);
-      if (!packetProduct || !packetProduct.isPacket || !packetProduct.packetSize) return;
-      // Add to cart as a packet item
-      const found = cart.find(c => c.id === packetProduct.id && c.isPacket);
+      const product = products.find(p => p.id === id);
+      if (!product || !product.isPacket || !product.packetSize) return;
+      const singleStock = getProductStock(product.id);
+      if (singleStock < product.packetSize) {
+        alert(`Not enough single items to make a packet!`);
+        return;
+      }
+      // Use packet price if available, else fallback to product.price
+      const price = (typeof product.packetPrice === 'number' && !isNaN(product.packetPrice)) ? product.packetPrice : product.price;
+      // Add to cart as a packet item (always use the same product)
+      const found = cart.find(c => c.id === product.id && c.isPacket);
       if (found) {
         found.qty += 1;
       } else {
         cart.push({
-          id: packetProduct.id,
-          name: packetProduct.name + ' (Packet)',
-          price: packetProduct.price,
+          id: product.id,
+          name: product.name + ' (Packet)',
+          price: price,
           qty: 1,
           isPacket: true,
-          packetSize: packetProduct.packetSize
+          packetSize: product.packetSize
         });
       }
       renderCart();
@@ -454,21 +491,22 @@ function attachProductCardListeners() {
 
 // Render a product card for the grid
 function productCardHtml(p) {
-  const stock = getProductStock(p.id);
-  const isOutOfStock = stock <= 0;
-  const isLowStock = stock > 0 && stock <= 5;
-  
+  const singleStock = getProductStock(p.id);
+  const packetStock = (p.isPacket && p.packetSize) ? Math.floor(singleStock / p.packetSize) : null;
+  const isOutOfStock = singleStock <= 0;
+  const isLowStock = singleStock > 0 && singleStock <= 5;
+
   let stockClass = 'stock-normal';
-  let stockText = `Stock: ${stock}`;
-  
+  let stockText = `Stock: ${singleStock}`;
+
   if (isOutOfStock) {
     stockClass = 'stock-out';
     stockText = 'Out of Stock';
   } else if (isLowStock) {
     stockClass = 'stock-low';
-    stockText = `Low Stock: ${stock}`;
+    stockText = `Low Stock: ${singleStock}`;
   }
-  
+
   return `
     <div class="product-card">
       <div class="prod-img-wrap">
@@ -478,11 +516,11 @@ function productCardHtml(p) {
         <div class="prod-title">${escapeHtml(p.name)}</div>
         <div class="prod-meta">₹${p.price} | ${escapeHtml(p.category)}</div>
         <div class="prod-stock ${stockClass}">${stockText}</div>
-        ${p.isPacket && p.packetSize ? `<div class="prod-packet-info">Packet of ${p.packetSize}</div>` : ''}
+        ${p.isPacket && p.packetSize ? `<div class="prod-packet-info">Packet of ${p.packetSize} | Packets in stock: ${packetStock}</div>` : ''}
         <button class="btn add-to-bill" data-id="${p.id}" ${isOutOfStock ? 'disabled' : ''}>
           ${isOutOfStock ? 'Out of Stock' : 'Add to Bill'}
         </button>
-        ${p.isPacket && p.packetSize ? `<button class="btn sell-packet" data-id="${p.id}" ${isOutOfStock ? 'disabled' : ''}>Sell Packet</button>` : ''}
+        ${p.isPacket && p.packetSize ? `<button class="btn sell-packet" data-id="${p.id}" ${(packetStock < 1) ? 'disabled' : ''}>Sell Packet</button>` : ''}
         <button class="btn remove-prod" data-id="${p.id}">Remove</button>
       </div>
     </div>
@@ -490,24 +528,32 @@ function productCardHtml(p) {
 }
 
 // Add product to cart (don't decrease stock until bill is completed)
-function addToCart(product) {
+function addToCart(product, isPacket = false, overridePrice = null) {
   // Check if we can add this item (considering what's already in cart)
   const currentStock = getProductStock(product.id);
-  const cartItem = cart.find(c => c.id === product.id);
+  const cartItem = cart.find(c => c.id === product.id && (!!c.isPacket) === !!isPacket);
   const cartQuantity = cartItem ? cartItem.qty : 0;
-  
-  if (currentStock <= cartQuantity) {
-    alert(`Sorry, only ${currentStock} ${product.name} available in stock!`);
+  let maxAllowed = currentStock;
+  if (isPacket && product.packetSize) {
+    maxAllowed = Math.floor(currentStock / product.packetSize);
+  }
+  if (maxAllowed <= cartQuantity) {
+    alert(`Sorry, only ${maxAllowed} ${product.name}${isPacket ? ' packets' : ''} available in stock!`);
     return;
   }
-  
-  const found = cart.find(c => c.id === product.id);
+  const found = cart.find(c => c.id === product.id && (!!c.isPacket) === !!isPacket);
   if (found) {
     found.qty += 1;
   } else {
-    cart.push({ id: product.id, name: product.name, price: product.price, qty: 1 });
+    cart.push({
+      id: product.id,
+      name: isPacket ? product.name + ' (Packet)' : product.name,
+      price: overridePrice !== null ? overridePrice : product.price,
+      qty: 1,
+      isPacket: isPacket,
+      packetSize: isPacket ? product.packetSize : undefined
+    });
   }
-  
   renderCart();
 }
 
@@ -518,6 +564,8 @@ async function addTransaction(product) {
     productId: product.id,
     productName: product.name,
     price: product.price,
+    isPacket: product.isPacket || false,
+    packetSize: product.packetSize || null,
     timestamp: now.toISOString(),
     date: getDateString(now),
     user: auth.currentUser ? auth.currentUser.email : null
@@ -620,17 +668,12 @@ function completeSale() {
   // Check stock availability for all items
   for (let item of cart) {
     if (item.isPacket) {
-      // For packet, check both packet and base product stock
+      // For packet, check single stock is enough for all packets
       const packetProduct = products.find(p => p.id === item.id);
-      const baseProduct = products.find(p => p.name === packetProduct.name && !p.isPacket);
-      const packetStock = getProductStock(packetProduct.id);
-      const baseStock = baseProduct ? getProductStock(baseProduct.id) : 0;
+      const singleStock = getProductStock(packetProduct.id);
+      const packetStock = Math.floor(singleStock / item.packetSize);
       if (packetStock < item.qty) {
         alert(`Insufficient packet stock for ${item.name}. Available: ${packetStock}, Required: ${item.qty}`);
-        return false;
-      }
-      if (!baseProduct || baseStock < item.packetSize * item.qty) {
-        alert(`Insufficient base product stock for ${item.name}. Need ${item.packetSize * item.qty}, available: ${baseStock}`);
         return false;
       }
     } else {
@@ -645,14 +688,8 @@ function completeSale() {
   // Decrease stock for all items
   cart.forEach(item => {
     if (item.isPacket) {
-      // Decrease packet product stock
-      decreaseStock(item.id, item.qty);
-      // Decrease base product stock
-      const packetProduct = products.find(p => p.id === item.id);
-      const baseProduct = products.find(p => p.name === packetProduct.name && !p.isPacket);
-      if (baseProduct) {
-        decreaseStock(baseProduct.id, item.packetSize * item.qty);
-      }
+      // Decrease single stock by packetSize * qty
+      decreaseStock(item.id, item.packetSize * item.qty);
       // Track each sold packet as a separate transaction
       for (let i = 0; i < item.qty; i++) {
         addTransaction({
@@ -680,6 +717,7 @@ function completeSale() {
   console.log(`Sale completed! ${itemCount} items sold for ₹${totalAmount.toLocaleString()}`);
   
   updateTransactionDisplay();
+  renderProducts(); // Ensure all product cards update stock
   return true;
 }
 
@@ -776,11 +814,15 @@ function printBill() {
   // Clear cart after successful print
   cart = [];
   renderCart();
+  const packetPrice = isPacket && packetPriceInput ? Number(packetPriceInput.value) : null;
+  const singlePrice = isPacket && singlePriceInput ? Number(singlePriceInput.value) : null;
 }
 
 function printableHtml() {
   const rows = cart.map(i => `
     <tr>
+    if (packetPrice === null || packetPrice < 0) return alert("Please enter a valid packet price.");
+    if (singlePrice === null || singlePrice < 0) return alert("Please enter a valid single price.");
       <td>${i.name}</td>
       <td style="text-align:center">${i.qty}</td>
       <td>${i.price}</td>
@@ -794,6 +836,8 @@ function printableHtml() {
       <style>
         body {
           width: 80mm;
+      packetPrice: isPacket ? packetPrice : null,
+      singlePrice: isPacket ? singlePrice : null,
           margin: 0 auto;
           font-family: 'Courier New', Courier, monospace;
           font-size: 12px;
@@ -805,8 +849,12 @@ function printableHtml() {
           margin: 0;
           padding: 0;
         }
+    if (packetPriceInput) packetPriceInput.value = "";
+    if (singlePriceInput) singlePriceInput.value = "";
         .shop-header {
           text-align: center;
+    if (packetPriceWrap) packetPriceWrap.style.display = "none";
+    if (singlePriceWrap) singlePriceWrap.style.display = "none";
           font-size: 13px;
           font-weight: bold;
           margin-bottom: 4px;
@@ -1010,11 +1058,20 @@ function cleanupOldTransactions() {
 // Remove transaction from Firestore
 async function removeTransaction(transactionId, productId) {
   try {
-    await deleteDoc(doc(db, "transactions", transactionId));
+    // Get the transaction document to know if it was packet or single
+    const transactionRef = doc(db, "transactions", transactionId);
+    const transactionSnap = await getDoc(transactionRef);
+    let isPacket = false;
+    let packetSize = null;
+    if (transactionSnap.exists()) {
+      const t = transactionSnap.data();
+      isPacket = t.isPacket || false;
+      packetSize = t.packetSize || null;
+    }
+    await deleteDoc(transactionRef);
     if (productId) {
-      // Find the product in the products array
       const product = products.find(p => p.id === productId);
-      if (product && product.isPacket && product.packetSize) {
+      if (isPacket && product && product.packetSize) {
         // Restock the packet product
         increaseStock(productId, 1);
         // Find the base (single) product by name and not packet
