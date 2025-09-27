@@ -1252,21 +1252,20 @@ main{display:flex;gap:28px;margin-top:18px}
   box-sizing: border-box;
   flex-direction: row;
   justify-content: flex-start;
+  gap: 10px;
 }
 .packet-label {
   font-size: 15px;
   cursor: pointer;
   color: #333;
-  margin-left: 8px;
-  margin-right: 12px;
+  margin: 0;
 }
 .packet-checkbox {
   width: 18px;
   height: 18px;
   accent-color: #7c4dff;
   cursor: pointer;
-  margin-right: 0;
-  margin-left: 0;
+  margin: 0;
 }
 }
 .grid{
