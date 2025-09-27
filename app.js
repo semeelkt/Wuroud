@@ -697,96 +697,92 @@ function printableHtml() {
     <tr>
       <td>${i.name}</td>
       <td style="text-align:center">${i.qty}</td>
-      <td>₹${i.price}</td>
-      <td>₹${i.price * i.qty}</td>
+      <td>${i.price}</td>
+      <td>${i.price * i.qty}</td>
     </tr>
   `).join("");
-  const total = cart.reduce((s, i) => s + i.price * i.qty, 0).toLocaleString();
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
 
   return `
-    <html><head><title>Wuroud Bill</title>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <html><head><title>WUROUD BILL</title>
       <style>
         body {
-          font-family: 'Inter', Arial, sans-serif;
-          background: #f7f8fa;
-          color: #222;
-          padding: 32px 0;
-        }
-        .bill-container {
-          max-width: 480px;
+          width: 80mm;
           margin: 0 auto;
+          font-family: 'Courier New', Courier, monospace;
+          font-size: 12px;
+          color: #000;
           background: #fff;
-          border-radius: 14px;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-          padding: 32px 28px 28px 28px;
         }
-        .bill-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 18px;
+        .receipt {
+          width: 100%;
+          margin: 0;
+          padding: 0;
         }
-        .bill-logo {
-          width: 38px; height: 38px; border-radius: 8px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; color: #7b1fa2; letter-spacing: 1px;
+        .shop-header {
+          text-align: center;
+          font-size: 13px;
+          font-weight: bold;
+          margin-bottom: 4px;
+          margin-top: 0;
+          line-height: 1.3;
         }
-        .bill-title {
-          font-size: 1.5rem;
-          font-weight: 600;
+        .shop-header .shop-name {
+          font-size: 15px;
+          font-weight: bold;
           letter-spacing: 1px;
         }
-        .bill-meta {
-          color: #888;
-          font-size: 0.98rem;
-          margin-bottom: 18px;
+        .shop-header .shop-address,
+        .shop-header .shop-phone {
+          font-size: 12px;
+          font-weight: normal;
+        }
+        .meta {
+          font-size: 12px;
+          margin-bottom: 4px;
         }
         table {
           width: 100%;
-          border-collapse: separate;
-          border-spacing: 0;
-          margin-bottom: 18px;
+          border-collapse: collapse;
+          font-size: 12px;
+          margin-bottom: 6px;
         }
         th, td {
-          padding: 10px 8px;
+          padding: 2px 0;
           text-align: left;
+          border: none;
         }
-        thead th {
-          background: #f5f5fa;
-          color: #7b1fa2;
-          font-weight: 600;
-          border-bottom: 2px solid #ececec;
-        }
-        tbody td {
-          border-bottom: 1px solid #f0f0f0;
+        th {
+          border-bottom: 1px dashed #000;
+          font-weight: bold;
         }
         tfoot td {
-          font-size: 1.1rem;
-          font-weight: 600;
-          color: #222;
-          background: #f8f6ff;
-          border-top: 2px solid #ececec;
+          font-weight: bold;
+          font-size: 13px;
+          border-top: 1px solid #000;
         }
-        .bill-footer {
+        .footer {
           text-align: center;
-          color: #aaa;
-          font-size: 0.95rem;
-          margin-top: 18px;
+          font-size: 12px;
+          margin-top: 8px;
         }
       </style>
     </head>
     <body>
-      <div class="bill-container">
-        <div class="bill-header">
-          <div class="bill-logo">W</div>
-          <div class="bill-title">Wuroud Bill</div>
+      <div class="receipt">
+        <div class="shop-header">
+          <div class="shop-name">WUROUD</div>
+          <div class="shop-address">PUTHIRIKKAL, PARAPPANGADI ROAD</div>
+          <div class="shop-phone">Phone: +91 9061706318</div>
         </div>
-        <div class="bill-meta">Mobile: ${document.getElementById("custMobile").value || '-'}</div>
+        <div class="meta">Date: ${new Date().toLocaleString()}</div>
+        <div class="meta">Mobile: ${document.getElementById("custMobile").value || '-'}</div>
         <table>
-          <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Sub</th></tr></thead>
+          <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Amt</th></tr></thead>
           <tbody>${rows}</tbody>
-          <tfoot><tr><td colspan="3">Total</td><td>₹${total}</td></tr></tfoot>
+          <tfoot><tr><td colspan="3">TOTAL</td><td>${total}</td></tr></tfoot>
         </table>
-        <div class="bill-footer">Thank you for shopping with Wuroud!</div>
+        <div class="footer">Thank you for shopping with WUROUD!</div>
       </div>
     </body></html>
   `;
