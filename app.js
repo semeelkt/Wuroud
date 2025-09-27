@@ -38,12 +38,24 @@ const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
 const minPrice = document.getElementById("minPrice");
 const maxPrice = document.getElementById("maxPrice");
+// Packet option elements
+const isPacketCheckbox = document.getElementById("isPacketCheckbox");
+const packetSizeWrap = document.getElementById("packetSizeWrap");
+const packetSizeInput = document.getElementById("packetSizeInput");
 
 // Filter/search listeners
 searchInput.addEventListener("input", renderProducts);
 categoryFilter.addEventListener("change", renderProducts);
 minPrice.addEventListener("input", renderProducts);
 maxPrice.addEventListener("input", renderProducts);
+
+// Show/hide packet size input
+if (isPacketCheckbox && packetSizeWrap) {
+  isPacketCheckbox.addEventListener("change", function() {
+    packetSizeWrap.style.display = this.checked ? "block" : "none";
+    if (!this.checked && packetSizeInput) packetSizeInput.value = "";
+  });
+}
 const loginForm = document.getElementById("loginForm");
 const authContainer = document.getElementById("authContainer");
 const logoutBtn = document.getElementById("logoutBtn");
@@ -297,9 +309,12 @@ addBtn.addEventListener("click", async () => {
   const category = pCategoryInput.value;
   const image = pImage.value.trim();
   const user = auth.currentUser;
+  const isPacket = isPacketCheckbox && isPacketCheckbox.checked;
+  const packetSize = isPacket && packetSizeInput ? Number(packetSizeInput.value) : null;
 
   if (!name || !price) return alert("Please enter product name and price.");
   if (stock < 0) return alert("Stock quantity cannot be negative.");
+  if (isPacket && (!packetSize || packetSize < 1)) return alert("Please enter a valid packet size.");
 
   if (user) {
     await addDoc(productsCol, {
@@ -308,15 +323,20 @@ addBtn.addEventListener("click", async () => {
       category,
       image: image || "",
       stock: stock,
+      isPacket: !!isPacket,
+      packetSize: isPacket ? packetSize : null,
       createdAt: Date.now(),
       userId: user.uid
     });
 
-  pName.value = "";
-  pPrice.value = "";
-  document.getElementById("pStock").value = "";
-  pImage.value = "";
-  loadProducts();
+    pName.value = "";
+    pPrice.value = "";
+    document.getElementById("pStock").value = "";
+    pImage.value = "";
+    if (isPacketCheckbox) isPacketCheckbox.checked = false;
+    if (packetSizeInput) packetSizeInput.value = "";
+    if (packetSizeWrap) packetSizeWrap.style.display = "none";
+    loadProducts();
   } else {
     alert("Please log in to add products.");
   }
@@ -392,6 +412,37 @@ function attachProductCardListeners() {
     };
   });
 
+  // Sell Packet button logic
+  document.querySelectorAll(".sell-packet").forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.id;
+      const packetProduct = products.find(p => p.id === id);
+      if (!packetProduct || !packetProduct.isPacket || !packetProduct.packetSize) return;
+      // Find base product (same name, not a packet)
+      const baseProduct = products.find(p => p.name === packetProduct.name && !p.isPacket);
+      if (!baseProduct) {
+        alert("Base product not found for this packet.");
+        return;
+      }
+      // Check stock
+      const packetStock = getProductStock(packetProduct.id);
+      const baseStock = getProductStock(baseProduct.id);
+      if (packetStock < 1) {
+        alert("No packet stock available!");
+        return;
+      }
+      if (baseStock < packetProduct.packetSize) {
+        alert(`Not enough base product stock! Need ${packetProduct.packetSize}, available: ${baseStock}`);
+        return;
+      }
+      // Decrease both stocks
+      await decreaseStock(packetProduct.id, 1);
+      await decreaseStock(baseProduct.id, packetProduct.packetSize);
+      alert("Sold 1 packet and updated stocks.");
+      loadProducts();
+    };
+  });
+
   document.querySelectorAll(".remove-prod").forEach(btn => {
     btn.onclick = async () => {
       const id = btn.dataset.id;
@@ -434,9 +485,11 @@ function productCardHtml(p) {
         <div class="prod-title">${escapeHtml(p.name)}</div>
         <div class="prod-meta">₹${p.price} | ${escapeHtml(p.category)}</div>
         <div class="prod-stock ${stockClass}">${stockText}</div>
+        ${p.isPacket && p.packetSize ? `<div class="prod-packet-info">Packet of ${p.packetSize}</div>` : ''}
         <button class="btn add-to-bill" data-id="${p.id}" ${isOutOfStock ? 'disabled' : ''}>
           ${isOutOfStock ? 'Out of Stock' : 'Add to Bill'}
         </button>
+        ${p.isPacket && p.packetSize ? `<button class="btn sell-packet" data-id="${p.id}" ${isOutOfStock ? 'disabled' : ''}>Sell Packet</button>` : ''}
         <button class="btn remove-prod" data-id="${p.id}">Remove</button>
       </div>
     </div>

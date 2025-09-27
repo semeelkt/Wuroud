@@ -1,3 +1,40 @@
+/* Packet option in Add New Product form */
+.packet-option-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 0 0;
+}
+.packet-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #7c4dff;
+  cursor: pointer;
+}
+.packet-label {
+  font-size: 15px;
+  cursor: pointer;
+  color: #333;
+}
+.packet-size-wrap {
+  margin: 8px 0 0 0;
+}
+.packet-size-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 15px;
+  background: #fff;
+  color: #333;
+  outline: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  transition: border-color 0.18s cubic-bezier(.4,0,.2,1), background 0.18s cubic-bezier(.4,0,.2,1);
+}
+.packet-size-input:focus {
+  border-color: #7c4dff;
+  background: #f8f6ff;
+}
 /* Stock search wrap for animation */
 .stock-search-wrap {
   display: inline-flex;
@@ -28,9 +65,6 @@
 .stock-search-input:focus {
   border-color: #7c4dff;
   background: #f8f6ff;
-}
-  border-color: #6c63ff;
-  box-shadow: 0 0 0 2px #e0e7ff;
 }
 @media (max-width: 600px) {
   .stock-search-input {
