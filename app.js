@@ -1170,48 +1170,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Stock filters and animated search
+  // Stock filters and search (no icon, input always visible)
   const stockCategoryFilter = document.getElementById('stockCategoryFilter');
   const stockStatusFilter = document.getElementById('stockStatusFilter');
   const stockSearchInput = document.getElementById('stockSearchInput');
-  const stockSearchBtn = document.getElementById('stockSearchBtn');
-  const stockSearchWrap = document.querySelector('.stock-search-wrap');
 
   if (stockCategoryFilter) stockCategoryFilter.addEventListener('change', updateStockDisplay);
   if (stockStatusFilter) stockStatusFilter.addEventListener('change', updateStockDisplay);
 
-  if (stockSearchBtn && stockSearchInput && stockSearchWrap) {
-    // Expand input on click
-    stockSearchBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (!stockSearchWrap.classList.contains('active')) {
-        stockSearchWrap.classList.add('active');
-        stockSearchInput.style.display = 'block';
-        stockSearchInput.focus();
-      } else {
-        // If already open, trigger search
-        updateStockDisplay();
-      }
-    });
-    // Collapse on blur (if not clicking button)
-    stockSearchInput.addEventListener('blur', () => {
-      setTimeout(() => {
-        stockSearchWrap.classList.remove('active');
-        stockSearchInput.style.display = 'none';
-      }, 120);
-    });
-    // Search on Enter
+  if (stockSearchInput) {
+    // Search on input
+    stockSearchInput.addEventListener('input', updateStockDisplay);
+    // Search on Enter (optional, for consistency)
     stockSearchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         updateStockDisplay();
-        stockSearchInput.blur();
-      }
-    });
-    // Clicking outside closes
-    document.addEventListener('click', (e) => {
-      if (!stockSearchWrap.contains(e.target)) {
-        stockSearchWrap.classList.remove('active');
-        stockSearchInput.style.display = 'none';
       }
     });
   }
