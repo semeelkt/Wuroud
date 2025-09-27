@@ -412,34 +412,27 @@ function attachProductCardListeners() {
     };
   });
 
-  // Sell Packet button logic
+  // Sell Packet button logic: add packet to cart
   document.querySelectorAll(".sell-packet").forEach(btn => {
-    btn.onclick = async () => {
+    btn.onclick = () => {
       const id = btn.dataset.id;
       const packetProduct = products.find(p => p.id === id);
       if (!packetProduct || !packetProduct.isPacket || !packetProduct.packetSize) return;
-      // Find base product (same name, not a packet)
-      const baseProduct = products.find(p => p.name === packetProduct.name && !p.isPacket);
-      if (!baseProduct) {
-        alert("Base product not found for this packet.");
-        return;
+      // Add to cart as a packet item
+      const found = cart.find(c => c.id === packetProduct.id && c.isPacket);
+      if (found) {
+        found.qty += 1;
+      } else {
+        cart.push({
+          id: packetProduct.id,
+          name: packetProduct.name + ' (Packet)',
+          price: packetProduct.price,
+          qty: 1,
+          isPacket: true,
+          packetSize: packetProduct.packetSize
+        });
       }
-      // Check stock
-      const packetStock = getProductStock(packetProduct.id);
-      const baseStock = getProductStock(baseProduct.id);
-      if (packetStock < 1) {
-        alert("No packet stock available!");
-        return;
-      }
-      if (baseStock < packetProduct.packetSize) {
-        alert(`Not enough base product stock! Need ${packetProduct.packetSize}, available: ${baseStock}`);
-        return;
-      }
-      // Decrease both stocks
-      await decreaseStock(packetProduct.id, 1);
-      await decreaseStock(baseProduct.id, packetProduct.packetSize);
-      alert("Sold 1 packet and updated stocks.");
-      loadProducts();
+      renderCart();
     };
   });
 
@@ -621,23 +614,58 @@ function completeSale() {
   
   // Check stock availability for all items
   for (let item of cart) {
-    const currentStock = getProductStock(item.id);
-    if (currentStock < item.qty) {
-      alert(`Insufficient stock for ${item.name}. Available: ${currentStock}, Required: ${item.qty}`);
-      return false;
+    if (item.isPacket) {
+      // For packet, check both packet and base product stock
+      const packetProduct = products.find(p => p.id === item.id);
+      const baseProduct = products.find(p => p.name === packetProduct.name && !p.isPacket);
+      const packetStock = getProductStock(packetProduct.id);
+      const baseStock = baseProduct ? getProductStock(baseProduct.id) : 0;
+      if (packetStock < item.qty) {
+        alert(`Insufficient packet stock for ${item.name}. Available: ${packetStock}, Required: ${item.qty}`);
+        return false;
+      }
+      if (!baseProduct || baseStock < item.packetSize * item.qty) {
+        alert(`Insufficient base product stock for ${item.name}. Need ${item.packetSize * item.qty}, available: ${baseStock}`);
+        return false;
+      }
+    } else {
+      const currentStock = getProductStock(item.id);
+      if (currentStock < item.qty) {
+        alert(`Insufficient stock for ${item.name}. Available: ${currentStock}, Required: ${item.qty}`);
+        return false;
+      }
     }
   }
-  
+
   // Decrease stock for all items
   cart.forEach(item => {
-    decreaseStock(item.id, item.qty);
-    // Track each sold item as a separate transaction
-    for (let i = 0; i < item.qty; i++) {
-      addTransaction({
-        id: item.id,
-        name: item.name,
-        price: item.price
-      });
+    if (item.isPacket) {
+      // Decrease packet product stock
+      decreaseStock(item.id, item.qty);
+      // Decrease base product stock
+      const packetProduct = products.find(p => p.id === item.id);
+      const baseProduct = products.find(p => p.name === packetProduct.name && !p.isPacket);
+      if (baseProduct) {
+        decreaseStock(baseProduct.id, item.packetSize * item.qty);
+      }
+      // Track each sold packet as a separate transaction
+      for (let i = 0; i < item.qty; i++) {
+        addTransaction({
+          id: item.id,
+          name: item.name,
+          price: item.price
+        });
+      }
+    } else {
+      decreaseStock(item.id, item.qty);
+      // Track each sold item as a separate transaction
+      for (let i = 0; i < item.qty; i++) {
+        addTransaction({
+          id: item.id,
+          name: item.name,
+          price: item.price
+        });
+      }
     }
   });
   
