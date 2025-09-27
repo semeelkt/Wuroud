@@ -393,13 +393,15 @@
               <option value="low">Low Stock</option>
               <option value="out">Out of Stock</option>
             </select>
-            <input id="stockSearchInput" type="text" placeholder="Search stock..." style="max-width:120px; margin-left:8px;" />
-            <button id="stockSearchBtn" class="stock-search-btn" title="Search">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="11" cy="11" r="7" stroke="#888" stroke-width="2"/>
-                <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="#888" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </button>
+            <div class="stock-search-wrap">
+              <button id="stockSearchBtn" class="stock-search-btn" title="Search" tabindex="0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="11" cy="11" r="7" stroke="#888" stroke-width="2"/>
+                  <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="#888" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <input id="stockSearchInput" type="text" class="stock-search-input" placeholder="Search stock..." style="display:none;" />
+            </div>
           </div>
           
           <div class="stock-table-container">
