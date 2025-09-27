@@ -912,6 +912,12 @@
   gap: 24px 18px;
   justify-items: center;
   align-items: stretch;
+  max-height: 540px;
+  overflow-y: auto;
+  padding-right: 8px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 :root{
   --bg:#f5f6f7;
