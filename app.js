@@ -42,8 +42,6 @@ const maxPrice = document.getElementById("maxPrice");
 const isPacketCheckbox = document.getElementById("isPacketCheckbox");
 const packetSizeWrap = document.getElementById("packetSizeWrap");
 const packetSizeInput = document.getElementById("packetSizeInput");
-const singleStockWrap = document.getElementById("singleStockWrap");
-const singleStockInput = document.getElementById("singleStockInput");
 
 // Filter/search listeners
 searchInput.addEventListener("input", renderProducts);
@@ -52,12 +50,10 @@ minPrice.addEventListener("input", renderProducts);
 maxPrice.addEventListener("input", renderProducts);
 
 // Show/hide packet size input
-if (isPacketCheckbox && packetSizeWrap && singleStockWrap) {
+if (isPacketCheckbox && packetSizeWrap) {
   isPacketCheckbox.addEventListener("change", function() {
     packetSizeWrap.style.display = this.checked ? "block" : "none";
-    singleStockWrap.style.display = this.checked ? "block" : "none";
     if (!this.checked && packetSizeInput) packetSizeInput.value = "";
-    if (!this.checked && singleStockInput) singleStockInput.value = "";
   });
 }
 const loginForm = document.getElementById("loginForm");
@@ -315,15 +311,10 @@ addBtn.addEventListener("click", async () => {
   const user = auth.currentUser;
   const isPacket = isPacketCheckbox && isPacketCheckbox.checked;
   const packetSize = isPacket && packetSizeInput ? Number(packetSizeInput.value) : null;
-  const singleStock = isPacket && singleStockInput ? Number(singleStockInput.value) : null;
 
   if (!name || !price) return alert("Please enter product name and price.");
-  if (isPacket) {
-    if (!packetSize || packetSize < 1) return alert("Please enter a valid packet size.");
-    if (singleStock === null || singleStock < 0) return alert("Please enter a valid single item stock.");
-  } else {
-    if (stock < 0) return alert("Stock quantity cannot be negative.");
-  }
+  if (stock < 0) return alert("Stock quantity cannot be negative.");
+  if (isPacket && (!packetSize || packetSize < 1)) return alert("Please enter a valid packet size.");
 
   if (user) {
     await addDoc(productsCol, {
@@ -331,7 +322,7 @@ addBtn.addEventListener("click", async () => {
       price,
       category,
       image: image || "",
-      stock: isPacket ? singleStock : stock,
+      stock: stock,
       isPacket: !!isPacket,
       packetSize: isPacket ? packetSize : null,
       createdAt: Date.now(),
@@ -344,9 +335,7 @@ addBtn.addEventListener("click", async () => {
     pImage.value = "";
     if (isPacketCheckbox) isPacketCheckbox.checked = false;
     if (packetSizeInput) packetSizeInput.value = "";
-    if (singleStockInput) singleStockInput.value = "";
     if (packetSizeWrap) packetSizeWrap.style.display = "none";
-    if (singleStockWrap) singleStockWrap.style.display = "none";
     loadProducts();
   } else {
     alert("Please log in to add products.");
@@ -465,22 +454,21 @@ function attachProductCardListeners() {
 
 // Render a product card for the grid
 function productCardHtml(p) {
-  const singleStock = getProductStock(p.id);
-  const packetStock = (p.isPacket && p.packetSize) ? Math.floor(singleStock / p.packetSize) : null;
-  const isOutOfStock = singleStock <= 0;
-  const isLowStock = singleStock > 0 && singleStock <= 5;
-
+  const stock = getProductStock(p.id);
+  const isOutOfStock = stock <= 0;
+  const isLowStock = stock > 0 && stock <= 5;
+  
   let stockClass = 'stock-normal';
-  let stockText = `Stock: ${singleStock}`;
-
+  let stockText = `Stock: ${stock}`;
+  
   if (isOutOfStock) {
     stockClass = 'stock-out';
     stockText = 'Out of Stock';
   } else if (isLowStock) {
     stockClass = 'stock-low';
-    stockText = `Low Stock: ${singleStock}`;
+    stockText = `Low Stock: ${stock}`;
   }
-
+  
   return `
     <div class="product-card">
       <div class="prod-img-wrap">
@@ -490,11 +478,11 @@ function productCardHtml(p) {
         <div class="prod-title">${escapeHtml(p.name)}</div>
         <div class="prod-meta">₹${p.price} | ${escapeHtml(p.category)}</div>
         <div class="prod-stock ${stockClass}">${stockText}</div>
-        ${p.isPacket && p.packetSize ? `<div class="prod-packet-info">Packet of ${p.packetSize} | Packets in stock: ${packetStock}</div>` : ''}
+        ${p.isPacket && p.packetSize ? `<div class="prod-packet-info">Packet of ${p.packetSize}</div>` : ''}
         <button class="btn add-to-bill" data-id="${p.id}" ${isOutOfStock ? 'disabled' : ''}>
           ${isOutOfStock ? 'Out of Stock' : 'Add to Bill'}
         </button>
-        ${p.isPacket && p.packetSize ? `<button class="btn sell-packet" data-id="${p.id}" ${(packetStock < 1) ? 'disabled' : ''}>Sell Packet</button>` : ''}
+        ${p.isPacket && p.packetSize ? `<button class="btn sell-packet" data-id="${p.id}" ${isOutOfStock ? 'disabled' : ''}>Sell Packet</button>` : ''}
         <button class="btn remove-prod" data-id="${p.id}">Remove</button>
       </div>
     </div>
@@ -632,12 +620,17 @@ function completeSale() {
   // Check stock availability for all items
   for (let item of cart) {
     if (item.isPacket) {
-      // For packet, check single stock is enough for all packets
+      // For packet, check both packet and base product stock
       const packetProduct = products.find(p => p.id === item.id);
-      const singleStock = getProductStock(packetProduct.id);
-      const packetStock = Math.floor(singleStock / item.packetSize);
+      const baseProduct = products.find(p => p.name === packetProduct.name && !p.isPacket);
+      const packetStock = getProductStock(packetProduct.id);
+      const baseStock = baseProduct ? getProductStock(baseProduct.id) : 0;
       if (packetStock < item.qty) {
         alert(`Insufficient packet stock for ${item.name}. Available: ${packetStock}, Required: ${item.qty}`);
+        return false;
+      }
+      if (!baseProduct || baseStock < item.packetSize * item.qty) {
+        alert(`Insufficient base product stock for ${item.name}. Need ${item.packetSize * item.qty}, available: ${baseStock}`);
         return false;
       }
     } else {
@@ -652,8 +645,14 @@ function completeSale() {
   // Decrease stock for all items
   cart.forEach(item => {
     if (item.isPacket) {
-      // Decrease single stock by packetSize * qty
-      decreaseStock(item.id, item.packetSize * item.qty);
+      // Decrease packet product stock
+      decreaseStock(item.id, item.qty);
+      // Decrease base product stock
+      const packetProduct = products.find(p => p.id === item.id);
+      const baseProduct = products.find(p => p.name === packetProduct.name && !p.isPacket);
+      if (baseProduct) {
+        decreaseStock(baseProduct.id, item.packetSize * item.qty);
+      }
       // Track each sold packet as a separate transaction
       for (let i = 0; i < item.qty; i++) {
         addTransaction({
@@ -681,7 +680,6 @@ function completeSale() {
   console.log(`Sale completed! ${itemCount} items sold for ₹${totalAmount.toLocaleString()}`);
   
   updateTransactionDisplay();
-  renderProducts(); // Ensure all product cards update stock
   return true;
 }
 
