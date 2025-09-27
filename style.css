@@ -1237,6 +1237,36 @@ main{display:flex;gap:28px;margin-top:18px}
   border:1px solid #ececec;
   background:transparent;
 }
+
+/* Packet option row styled like input */
+.packet-option-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin: 8px 0;
+  padding: 0 0 0 2px;
+  min-height: 44px;
+  border-radius: 8px;
+  border: 1px solid #ececec;
+  background: transparent;
+  box-sizing: border-box;
+}
+.packet-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #7c4dff;
+  cursor: pointer;
+  margin-right: 10px;
+  margin-left: 4px;
+}
+.packet-label {
+  font-size: 15px;
+  cursor: pointer;
+  color: #333;
+  margin-left: auto;
+  margin-right: 12px;
+}
+}
 .grid{
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
