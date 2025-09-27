@@ -1,3 +1,11 @@
+/* Cart packet label style */
+.packet-label-cart {
+  font-size: 13px;
+  color: #7c4dff;
+  font-weight: 500;
+  margin-left: 4px;
+  vertical-align: middle;
+}
 /* Packet option in Add New Product form */
 .packet-option-row {
   display: flex;

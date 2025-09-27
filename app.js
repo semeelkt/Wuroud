@@ -534,9 +534,14 @@ function renderCart() {
   const billTableBody = document.querySelector("#billTable tbody");
   billTableBody.innerHTML = cart.map(item => {
     const sub = item.price * item.qty;
+    // Style for packet label
+    const isPacket = item.isPacket;
+    const nameHtml = isPacket
+      ? `<span>${escapeHtml(item.name.replace(/ \(Packet\)$/,''))}<span class="packet-label-cart"> (Packet)</span></span>`
+      : escapeHtml(item.name);
     return `
       <tr data-id="${item.id}">
-        <td>${item.name}</td>
+        <td>${nameHtml}</td>
         <td>
           <input type="number" class="qty-input" value="${item.qty}" min="1" data-item-id="${item.id}" />
         </td>
