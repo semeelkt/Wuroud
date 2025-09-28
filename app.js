@@ -1167,6 +1167,8 @@ function listenToTransactions() {
         ...data
       });
     });
+      // Update dailyTotals for previous days after loading transactions
+      cleanupOldTransactions();
     updateTransactionDisplay();
     updateLeaderboards();
   }, error => {
