@@ -813,14 +813,19 @@ function generatePDF() {
 function printBill() {
   // Complete the sale first
   if (!completeSale()) return;
-  
-  const w = window.open("", "_blank");
+
+  // Open print window with custom size for thermal printer (120x176mm)
+  const w = window.open("", "_blank", "width=456,height=668"); // 120mm*3.8, 176mm*3.8 (approx px)
   const html = printableHtml();
   w.document.write(html);
   w.document.close();
   w.focus();
+  // Add print CSS for custom page size
+  const style = w.document.createElement('style');
+  style.textContent = `@page { size: 120mm 176mm; margin: 0; } body { width: 120mm; margin: 0 auto; }`;
+  w.document.head.appendChild(style);
   w.print();
-  
+
   // Clear cart after successful print
   cart = [];
   renderCart();
