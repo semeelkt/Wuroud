@@ -468,6 +468,25 @@
   gap: 8px;
   margin: 16px 0;
 }
+/* --- Thermal Print Width: 80mm --- */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+  body, .bill-card, .bill-table, .container, main, .right-col, .left-col {
+    width: 80mm !important;
+    min-width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+  /* Hide elements not needed for print */
+  .site-header, .main-navigation, .footer, .nav-tabs, .nav-tab, .search-area, .notification-bell, .notification-panel, .notification-overlay {
+    display: none !important;
+  }
+}
 
 .transaction-tab-btn {
   padding: 8px 16px;

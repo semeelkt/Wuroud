@@ -814,15 +814,15 @@ function printBill() {
   // Complete the sale first
   if (!completeSale()) return;
 
-  // Open print window with custom size for thermal printer (120x176mm)
-  const w = window.open("", "_blank", "width=456,height=668"); // 120mm*3.8, 176mm*3.8 (approx px)
+  // Open print window with custom size for thermal printer (80x176mm)
+  const w = window.open("", "_blank", "width=304,height=668"); // 80mm*3.8, 176mm*3.8 (approx px)
   const html = printableHtml();
   w.document.write(html);
   w.document.close();
   w.focus();
   // Add print CSS for custom page size
   const style = w.document.createElement('style');
-  style.textContent = `@page { size: 120mm 176mm; margin: 0; } body { width: 120mm; margin: 0 auto; }`;
+  style.textContent = `@page { size: 80mm 176mm; margin: 0; } body { width: 80mm; margin: 0 auto; }`;
   w.document.head.appendChild(style);
   w.print();
 
