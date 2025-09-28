@@ -1391,10 +1391,16 @@ function updateTransactionSectionDisplay() {
     
     const monthHtml = last30Days.map(date => {
       const isToday = date === getTodayString();
+      // Get all transactions for this day
+      const dayTransactions = transactions.filter(t => t.date === date);
       const total = isToday ? getTodayTotal() : (dailyTotals[date] || 0);
-      
       if (total === 0) return '';
-      
+      // Group items by product name and count
+      const itemCounts = {};
+      dayTransactions.forEach(t => {
+        if (!itemCounts[t.productName]) itemCounts[t.productName] = 0;
+        itemCounts[t.productName] += 1;
+      });
       return `
         <div class="daily-summary-item">
           <div class="daily-date">
@@ -1404,7 +1410,6 @@ function updateTransactionSectionDisplay() {
         </div>
       `;
     }).filter(html => html !== '').join('');
-    
     monthDetails.innerHTML = monthHtml || '<p class="no-data">No transactions this month</p>';
   }
 }
