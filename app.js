@@ -1545,8 +1545,16 @@ function updateStockDisplay() {
     } else if (statusFilter === 'out') {
       statusMatch = stock === 0;
     }
-    const nameMatch = !searchTerm || (product.name && product.name.toLowerCase().includes(searchTerm));
-    return categoryMatch && statusMatch && nameMatch;
+    // Search by name or keywords (like product search)
+    let keywords = [];
+    if (Array.isArray(product.keywords)) {
+      keywords = product.keywords.map(k => String(k).toLowerCase());
+    } else if (typeof product.keywords === 'string') {
+      keywords = product.keywords.split(',').map(k => k.trim().toLowerCase());
+    }
+    const nameMatch = product.name && product.name.toLowerCase().includes(searchTerm);
+    const keywordMatch = keywords.some(k => k.includes(searchTerm));
+    return categoryMatch && statusMatch && (nameMatch || keywordMatch);
   });
 
   // Generate table rows
