@@ -462,6 +462,46 @@ function attachProductCardListeners() {
       }
     };
   });
+
+  // Edit product on card click
+  document.querySelectorAll(".product-card").forEach(card => {
+    card.onclick = async function(e) {
+      // Prevent edit if clicking a button inside the card
+      if (e.target.closest("button")) return;
+      const prodName = this.querySelector(".prod-title").textContent;
+      const prodId = (this.querySelector(".remove-prod")?.getAttribute("data-id")) || null;
+      const product = products.find(p => p.id === prodId);
+      if (!product) return;
+      // Prompt for new values
+      const newName = prompt("Edit product name:", product.name);
+      if (newName === null) return;
+      const newPrice = prompt("Edit product price:", product.price);
+      if (newPrice === null || isNaN(Number(newPrice))) return alert("Invalid price");
+      const newCategory = prompt("Edit product category:", product.category);
+      if (newCategory === null) return;
+      // Optionally edit keywords
+      const newKeywords = prompt("Edit product keywords (comma separated):", product.keywords || "");
+      if (newKeywords === null) return;
+      // Optionally edit image URL
+      const newImage = prompt("Edit product image URL:", product.image || "");
+      if (newImage === null) return;
+      // Update in Firestore
+      try {
+        const productRef = doc(db, "products", prodId);
+        await updateDoc(productRef, {
+          name: newName,
+          price: Number(newPrice),
+          category: newCategory,
+          keywords: newKeywords,
+          image: newImage
+        });
+        alert("Product updated!");
+        loadProducts();
+      } catch (err) {
+        alert("Failed to update product: " + err.message);
+      }
+    };
+  });
 }
 
 // Render a product card for the grid
