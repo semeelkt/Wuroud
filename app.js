@@ -1189,8 +1189,8 @@ function updateLeaderboards() {
   monthAgo.setDate(now.getDate() - 29); // 30 days including today
   const monthStart = monthAgo.toISOString().split('T')[0];
 
-  // Helper to count product sales
-  function getTopSold(transactions, startDate) {
+  // Aggregate sales for last 7 and 30 days
+  function getTopSoldPeriod(startDate) {
     const sales = {};
     transactions.forEach(t => {
       if (t.date >= startDate) {
@@ -1207,8 +1207,8 @@ function updateLeaderboards() {
       .slice(0, 5); // Top 5
   }
 
-  const weeklyTop = getTopSold(transactions, weekStart);
-  const monthlyTop = getTopSold(transactions, monthStart);
+  const weeklyTop = getTopSoldPeriod(weekStart);
+  const monthlyTop = getTopSoldPeriod(monthStart);
 
   // Render leaderboards
   const weeklyEl = document.getElementById('weeklyLeaderboard');
