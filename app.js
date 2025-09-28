@@ -34,6 +34,7 @@ const pName = document.getElementById("pName");
 const pPrice = document.getElementById("pPrice");
 const pCategoryInput = document.getElementById("pCategoryInput");
 const pImage = document.getElementById("pImage");
+const pKeywords = document.getElementById("pKeywords");
 const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
 const minPrice = document.getElementById("minPrice");
@@ -308,6 +309,7 @@ addBtn.addEventListener("click", async () => {
   const stock = Number(document.getElementById("pStock").value) || 0;
   const category = pCategoryInput.value;
   const image = pImage.value.trim();
+  const keywords = pKeywords ? pKeywords.value.trim() : "";
   const user = auth.currentUser;
   const isPacket = isPacketCheckbox && isPacketCheckbox.checked;
   const packetSize = isPacket && packetSizeInput ? Number(packetSizeInput.value) : null;
@@ -325,18 +327,20 @@ addBtn.addEventListener("click", async () => {
       stock: stock,
       isPacket: !!isPacket,
       packetSize: isPacket ? packetSize : null,
+      keywords,
       createdAt: Date.now(),
       userId: user.uid
     });
 
-    pName.value = "";
-    pPrice.value = "";
-    document.getElementById("pStock").value = "";
-    pImage.value = "";
-    if (isPacketCheckbox) isPacketCheckbox.checked = false;
-    if (packetSizeInput) packetSizeInput.value = "";
-    if (packetSizeWrap) packetSizeWrap.style.display = "none";
-    loadProducts();
+  pName.value = "";
+  pPrice.value = "";
+  document.getElementById("pStock").value = "";
+  pImage.value = "";
+  if (pKeywords) pKeywords.value = "";
+  if (isPacketCheckbox) isPacketCheckbox.checked = false;
+  if (packetSizeInput) packetSizeInput.value = "";
+  if (packetSizeWrap) packetSizeWrap.style.display = "none";
+  loadProducts();
   } else {
     alert("Please log in to add products.");
   }
@@ -390,10 +394,18 @@ function renderProducts() {
   const max = maxPrice.value ? Number(maxPrice.value) : Infinity;
 
   const filtered = products.filter(p => {
+    // Search by name or keywords
+    let keywords = [];
+    if (Array.isArray(p.keywords)) {
+      keywords = p.keywords.map(k => String(k).toLowerCase());
+    } else if (typeof p.keywords === 'string') {
+      keywords = p.keywords.split(',').map(k => k.trim().toLowerCase());
+    }
     const nameMatch = p.name.toLowerCase().includes(qName);
+    const keywordMatch = keywords.some(k => k.includes(qName));
     const catMatch = qCat === "all" ? true : p.category === qCat;
     const priceMatch = p.price >= min && p.price <= max;
-    return nameMatch && catMatch && priceMatch;
+    return (nameMatch || keywordMatch) && catMatch && priceMatch;
   });
 
   console.log("Rendering products:", filtered);
