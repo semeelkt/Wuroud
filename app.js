@@ -698,77 +698,73 @@ function completeSale() {
 function generatePDF() {
   // Complete the sale first
   if (!completeSale()) return;
-  
+
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  let y = 40;
-
-  // Header with colored background
-  doc.setFillColor(123, 31, 162); // purple
-  doc.roundedRect(30, y, pageWidth - 60, 50, 10, 10, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(22);
-  doc.text('Wuroud Bill', pageWidth/2, y + 32, { align: 'center' });
-
-  y += 70;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(12);
-  doc.setTextColor(120,120,120);
-  doc.text(`Mobile: ${document.getElementById("custMobile").value || '-'}`, 40, y);
-
+  const doc = new jsPDF({ unit: 'pt', format: [226, 600] }); // 80mm width, height flexible
+  let y = 30;
+  doc.setFont('courier', 'bold');
+  doc.setFontSize(14);
+  doc.text('WUROUD', 113, y, { align: 'center' });
   y += 18;
-  // Table
-  const head = [['Item', 'Qty', 'Price', 'Subtotal']];
-  // Use Rs. as fallback if ₹ is not supported by the PDF font
-  function safeRupee(amount) {
-    return 'Rs. ' + amount.toLocaleString();
-  }
-  const body = cart.map(i => [
-    i.name,
-    String(i.qty),
-    safeRupee(i.price),
-    safeRupee(i.price * i.qty)
-  ]);
-  doc.autoTable({
-    head: head,
-    body: body,
-    startY: y + 10,
-    theme: 'grid',
-    headStyles: { fillColor: [245, 245, 250], textColor: [123,31,162], fontStyle: 'bold' },
-    styles: { font: 'helvetica', fontSize: 11, cellPadding: 6 },
-    bodyStyles: { textColor: [40,40,40] },
-    tableLineColor: [240,240,240],
-    tableLineWidth: 0.8,
-    margin: { left: 40, right: 40 },
+  doc.setFontSize(10);
+  doc.setFont('courier', 'normal');
+  doc.text('PUTHIRIKKAL, PARAPPANGADI ROAD', 113, y, { align: 'center' });
+  y += 14;
+  doc.text('Phone: +91 9061706318', 113, y, { align: 'center' });
+  y += 14;
+  doc.text('Retail Invoice', 113, y, { align: 'center' });
+  y += 18;
+  doc.setFontSize(9);
+  doc.text(`Date: ${new Date().toLocaleString()}`, 20, y);
+  y += 12;
+  doc.text(`Payment Mode: Cash`, 20, y);
+  y += 12;
+  doc.text(`Mobile: ${document.getElementById("custMobile").value || '-'}`, 20, y);
+  y += 16;
+  doc.setLineWidth(0.5);
+  doc.line(10, y, 216, y);
+  y += 10;
+  // Table header
+  doc.setFont('courier', 'bold');
+  doc.text('Item', 20, y);
+  doc.text('Qty', 113, y, { align: 'center' });
+  doc.text('Amt', 200, y, { align: 'right' });
+  y += 10;
+  doc.setLineWidth(0.7);
+  doc.line(10, y, 216, y); // Top border
+  y += 8;
+  // Table rows
+  cart.forEach(i => {
+    doc.setFont('courier', 'normal');
+    let prodName = i.name;
+    if (prodName.length > 20) prodName = prodName.slice(0, 20) + '…';
+    // Product name left, quantity center, amount right
+    doc.text(prodName, 20, y, { align: 'left', maxWidth: 80 });
+    doc.text(String(i.qty), 113, y, { align: 'center', maxWidth: 20 });
+    doc.text((i.price * i.qty).toFixed(2), 200, y, { align: 'right', maxWidth: 40 });
+    y += 18; // Add extra space between rows for clarity
   });
-
+  // Draw bottom border after all rows
+  doc.setLineWidth(0.7);
+  doc.line(10, y, 216, y);
+  y += 12;
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const finalY = doc.lastAutoTable.finalY;
+  doc.setFont('courier', 'bold');
+  doc.text('TOTAL', 20, y);
+  doc.text('Rs ' + total.toFixed(2), 170, y);
+  y += 16;
+  doc.setFont('courier', 'normal');
+  doc.text('Cash : Rs ' + total.toFixed(2), 20, y);
+  y += 12;
+  doc.text('Cash tendered : Rs ' + total.toFixed(2), 20, y);
+  y += 18;
+  doc.setFontSize(8);
+  doc.text('Thank you for shopping with WUROUD!', 113, y, { align: 'center' });
+  y += 10;
+  doc.text('E & O E', 113, y, { align: 'center' });
 
-  // Total summary box
-  doc.setFillColor(248,246,255);
-  doc.roundedRect(pageWidth-210, finalY+20, 160, 38, 8, 8, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.setTextColor(40,40,40);
-  // Draw 'Total' and amount in one line, same color, spaced apart
-  const totalLabel = 'Total';
-  const totalAmount = safeRupee(total);
-  const totalBoxX = pageWidth-210+16;
-  const totalBoxY = finalY+44;
-  doc.text(totalLabel, totalBoxX, totalBoxY);
-  doc.text(totalAmount, pageWidth-60, totalBoxY, { align: 'right' });
+  doc.save(`WUROUD-bill-${Date.now()}.pdf`);
 
-  // Footer
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  doc.setTextColor(170,170,170);
-  doc.text('Thank you for shopping with Wuroud!', pageWidth/2, finalY+80, { align: 'center' });
-
-  doc.save(`Wuroud-bill-${Date.now()}.pdf`);
-  
   // Clear cart after successful PDF generation
   cart = [];
   renderCart();
