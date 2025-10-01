@@ -188,6 +188,7 @@
               </h3>
               <div class="transaction-tabs">
                 <button id="todayTab" class="tab-btn active">Today</button>
+                <button id="weekTab" class="tab-btn">Weekly</button>
                 <button id="monthTab" class="tab-btn">30 Days</button>
               </div>
             </div>
@@ -199,6 +200,16 @@
               </div>
               <div id="todayTransactionsList" class="transaction-list">
                 <p class="no-transactions">No transactions today</p>
+              </div>
+            </div>
+
+            <div id="weekTransactions" class="transaction-content hidden">
+              <div class="transaction-summary">
+                <span class="summary-label">This Week's Total:</span>
+                <span id="weekTotal" class="summary-amount">₹0</span>
+              </div>
+              <div id="weekTransactionsList" class="transaction-list">
+                <p class="no-transactions">No transactions this week</p>
               </div>
             </div>
 
@@ -228,6 +239,7 @@
             
             <div class="transaction-tabs">
               <button id="todayTransactionTab" class="transaction-tab-btn active">Today</button>
+              <button id="weekTransactionTab" class="transaction-tab-btn">Weekly</button>
               <button id="monthTransactionTab" class="transaction-tab-btn">30 Days</button>
             </div>
             
@@ -244,6 +256,22 @@
               </div>
               <div id="todayTransactionDetails" class="transaction-details">
                 <p class="no-data">No transactions today</p>
+              </div>
+            </div>
+
+            <div id="weekTransactionView" class="transaction-view hidden">
+              <div class="transaction-summary">
+                <div class="summary-card">
+                  <span class="summary-label">Weekly Revenue</span>
+                  <span id="weekRevenue" class="summary-amount">₹0</span>
+                </div>
+                <div class="summary-card">
+                  <span class="summary-label">Total Items</span>
+                  <span id="weekItemCount" class="summary-count">0</span>
+                </div>
+              </div>
+              <div id="weekTransactionDetails" class="transaction-details">
+                <p class="no-data">No transactions this week</p>
               </div>
             </div>
             

@@ -68,6 +68,7 @@ let cart = []; // Cart items
 let products = []; // Snapshot cache
 let transactions = []; // Today's transactions
 let dailyTotals = {}; // Store daily totals by date
+let dailyProductSales = {}; // Store daily product sales by date and product
 let performanceChart = null; // Chart.js instance
 const DAILY_TARGET = 2000; // Daily target in rupees
 
@@ -1008,17 +1009,22 @@ function getTodayString() {
 function saveTransactionsToStorage() {
   localStorage.setItem('wuroud_transactions', JSON.stringify(transactions));
   localStorage.setItem('wuroud_daily_totals', JSON.stringify(dailyTotals));
+  localStorage.setItem('wuroud_daily_product_sales', JSON.stringify(dailyProductSales));
 }
 
 function loadTransactionsFromStorage() {
   const savedTransactions = localStorage.getItem('wuroud_transactions');
   const savedTotals = localStorage.getItem('wuroud_daily_totals');
+  const savedProductSales = localStorage.getItem('wuroud_daily_product_sales');
   
   if (savedTransactions) {
     transactions = JSON.parse(savedTransactions);
   }
   if (savedTotals) {
     dailyTotals = JSON.parse(savedTotals);
+  }
+  if (savedProductSales) {
+    dailyProductSales = JSON.parse(savedProductSales);
   }
   
   // Clean up old transactions (remove items older than today but keep totals)
@@ -1029,24 +1035,41 @@ function cleanupOldTransactions() {
   const today = getTodayString();
   const todayTransactions = transactions.filter(t => t.date === today);
   
-  // Calculate total for completed days and save to dailyTotals
+  // Calculate total and product sales for completed days and save to dailyTotals/dailyProductSales
   const groupedByDate = {};
+  const productSalesByDate = {};
+  
   transactions.forEach(t => {
     if (t.date !== today) {
+      // Store daily total
       if (!groupedByDate[t.date]) groupedByDate[t.date] = 0;
       groupedByDate[t.date] += t.price;
+      
+      // Store product sales by date
+      if (!productSalesByDate[t.date]) productSalesByDate[t.date] = {};
+      if (!productSalesByDate[t.date][t.productId]) {
+        productSalesByDate[t.date][t.productId] = {
+          name: t.productName,
+          count: 0
+        };
+      }
+      productSalesByDate[t.date][t.productId].count += 1;
     }
   });
   
-  // Update dailyTotals
+  // Update dailyTotals and dailyProductSales
   Object.keys(groupedByDate).forEach(date => {
     dailyTotals[date] = groupedByDate[date];
+  });
+  
+  Object.keys(productSalesByDate).forEach(date => {
+    dailyProductSales[date] = productSalesByDate[date];
   });
   
   // Keep only today's transactions
   transactions = todayTransactions;
   
-  // Keep only last 30 days of daily totals
+  // Keep only last 30 days of daily totals and product sales
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const cutoffDate = getDateString(thirtyDaysAgo);
@@ -1054,6 +1077,12 @@ function cleanupOldTransactions() {
   Object.keys(dailyTotals).forEach(date => {
     if (date < cutoffDate) {
       delete dailyTotals[date];
+    }
+  });
+  
+  Object.keys(dailyProductSales).forEach(date => {
+    if (date < cutoffDate) {
+      delete dailyProductSales[date];
     }
   });
   
@@ -1100,11 +1129,61 @@ function getMonthTotal() {
   return todayTotal + dailyTotal;
 }
 
+function getWeekTotal() {
+  const weekStart = getWeekStartDate();
+  const weekStartString = getDateString(weekStart);
+  
+  // Get today's transactions for this week
+  const todayString = getTodayString();
+  let weekTotal = 0;
+  
+  // Add today's total if today is in this week
+  if (todayString >= weekStartString) {
+    weekTotal += getTodayTotal();
+  }
+  
+  // Add daily totals for this week
+  Object.keys(dailyTotals).forEach(date => {
+    if (date >= weekStartString && date < todayString) {
+      weekTotal += dailyTotals[date];
+    }
+  });
+  
+  return weekTotal;
+}
+
+function getWeekStartDate() {
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Make Monday the start of week
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - daysToSubtract);
+  weekStart.setHours(0, 0, 0, 0);
+  return weekStart;
+}
+
+function getWeekTransactions() {
+  const weekStart = getWeekStartDate();
+  const weekStartString = getDateString(weekStart);
+  const todayString = getTodayString();
+  
+  // Get today's transactions if today is in this week
+  const weekTransactions = [];
+  if (todayString >= weekStartString) {
+    weekTransactions.push(...transactions.filter(t => t.date === todayString));
+  }
+  
+  return weekTransactions;
+}
+
 function updateTransactionDisplay() {
   updateTodayTransactions();
+  updateWeekTransactions();
   updateMonthTransactions();
   updatePerformanceStats();
   updatePerformanceChart();
+  updateTransactionSectionDisplay();
+  updateLeaderboards();
 }
 
 function updateTodayTransactions() {
@@ -1134,6 +1213,50 @@ function updateTodayTransactions() {
     });
   }
   todayTotal.textContent = `₹${getTodayTotal().toLocaleString()}`;
+}
+
+function updateWeekTransactions() {
+  const weekTransactionsList = document.getElementById('weekTransactionsList');
+  const weekTotal = document.getElementById('weekTotal');
+  
+  if (!weekTransactionsList || !weekTotal) return;
+  
+  const weekStart = getWeekStartDate();
+  const weekStartString = getDateString(weekStart);
+  const todayString = getTodayString();
+  
+  // Get all days in this week
+  const weekDays = [];
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + i);
+    const dateString = getDateString(date);
+    if (dateString <= todayString) {
+      weekDays.push(dateString);
+    }
+  }
+  
+  const weekHtml = weekDays.map(date => {
+    const isToday = date === todayString;
+    const total = isToday ? getTodayTotal() : (dailyTotals[date] || 0);
+    
+    if (total === 0) return '';
+    
+    const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'short' });
+    
+    return `
+      <div class="daily-summary">
+        <div class="daily-date">
+          ${isToday ? 'Today' : dayName + ' ' + new Date(date).toLocaleDateString()}
+          ${isToday ? ` (${transactions.filter(t => t.date === date).length} items)` : ''}
+        </div>
+        <div class="daily-amount">₹${total.toLocaleString()}</div>
+      </div>
+    `;
+  }).filter(html => html !== '').join('');
+  
+  weekTransactionsList.innerHTML = weekHtml || '<p class="no-transactions">No transactions this week</p>';
+  weekTotal.textContent = `₹${getWeekTotal().toLocaleString()}`;
 }
 
 function updateMonthTransactions() {
@@ -1219,56 +1342,81 @@ function listenToTransactions() {
 
 // Leaderboard logic
 function updateLeaderboards() {
-  // Weekly leaderboard: last 7 days
-  const now = new Date();
-  const weekAgo = new Date();
-  weekAgo.setDate(now.getDate() - 6); // 7 days including today
-  const weekStart = weekAgo.toISOString().split('T')[0];
-
-  // Monthly leaderboard: last 30 days
-  const monthAgo = new Date();
-  monthAgo.setDate(now.getDate() - 29); // 30 days including today
-  const monthStart = monthAgo.toISOString().split('T')[0];
-
-  // Aggregate sales for last 7 and 30 days
-  function getTopSoldPeriod(startDate) {
-    const sales = {};
-    transactions.forEach(t => {
-      if (t.date >= startDate) {
-        if (!sales[t.productId]) {
-          sales[t.productId] = { name: t.productName, count: 0 };
+  // Get current week (Monday to today)
+  const weekStart = getWeekStartDate();
+  const weekStartString = getDateString(weekStart);
+  
+  // Get last 30 days
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+  const monthStartString = getDateString(thirtyDaysAgo);
+  
+  const todayString = getTodayString();
+  
+  function getTopSoldForPeriod(startDateString) {
+    const productSales = {};
+    
+    // Add today's transactions if today is in the period
+    if (todayString >= startDateString) {
+      transactions.forEach(t => {
+        if (t.date >= startDateString) {
+          if (!productSales[t.productId]) {
+            productSales[t.productId] = {
+              name: t.productName,
+              count: 0
+            };
+          }
+          productSales[t.productId].count += 1;
         }
-        sales[t.productId].count += 1;
+      });
+    }
+    
+    // Add historical product sales data
+    Object.keys(dailyProductSales).forEach(date => {
+      if (date >= startDateString && date < todayString) {
+        const dayProducts = dailyProductSales[date];
+        Object.keys(dayProducts).forEach(productId => {
+          const productData = dayProducts[productId];
+          if (!productSales[productId]) {
+            productSales[productId] = {
+              name: productData.name,
+              count: 0
+            };
+          }
+          productSales[productId].count += productData.count;
+        });
       }
     });
+    
     // Convert to array and sort by count desc
-    return Object.entries(sales)
+    return Object.entries(productSales)
       .map(([id, info]) => ({ id, name: info.name, count: info.count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5); // Top 5
   }
-
-  const weeklyTop = getTopSoldPeriod(weekStart);
-  const monthlyTop = getTopSoldPeriod(monthStart);
-
+  
+  const weeklyTop = getTopSoldForPeriod(weekStartString);
+  const monthlyTop = getTopSoldForPeriod(monthStartString);
+  
   // Render leaderboards
   const weeklyEl = document.getElementById('weeklyLeaderboard');
   const monthlyEl = document.getElementById('monthlyLeaderboard');
-
+  
   function renderLeaderboard(list, el) {
     if (!el) return;
     if (list.length === 0) {
       el.innerHTML = '<p class="no-data">No sales in this period</p>';
       return;
     }
-    el.innerHTML = list.map((item) => `
+    el.innerHTML = list.map((item, index) => `
       <div class="leaderboard-item" style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
+        <span class="rank" style="font-weight: bold; color: #666; min-width: 20px;">#${index + 1}</span>
         <span class="product-name" style="flex: 1; font-weight: 500; color: #444; font-size: 16px; letter-spacing: 0.1px;">${escapeHtml(item.name)}</span>
         <span class="sold-count" style="font-size: 14px; color: #28a745; font-weight: 600;">${item.count} sold</span>
       </div>
     `).join('');
   }
-
+  
   renderLeaderboard(weeklyTop, weeklyEl);
   renderLeaderboard(monthlyTop, monthlyEl);
 }
@@ -1294,11 +1442,18 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Transaction sub-tabs
   const todayTransactionTab = document.getElementById('todayTransactionTab');
+  const weekTransactionTab = document.getElementById('weekTransactionTab');
   const monthTransactionTab = document.getElementById('monthTransactionTab');
   
   if (todayTransactionTab) {
     todayTransactionTab.addEventListener('click', function() {
       showTransactionSubTab('today');
+    });
+  }
+
+  if (weekTransactionTab) {
+    weekTransactionTab.addEventListener('click', function() {
+      showTransactionSubTab('week');
     });
   }
   
@@ -1310,11 +1465,18 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Legacy transaction tabs (for billing section)
   const todayTab = document.getElementById('todayTab');
+  const weekTab = document.getElementById('weekTab');
   const monthTab = document.getElementById('monthTab');
   
   if (todayTab) {
     todayTab.addEventListener('click', function() {
       showTransactionTab('today');
+    });
+  }
+
+  if (weekTab) {
+    weekTab.addEventListener('click', function() {
+      showTransactionTab('week');
     });
   }
   
@@ -1380,20 +1542,27 @@ function showMainSection(section) {
 // Transaction section sub-tab switching
 function showTransactionSubTab(tab) {
   const todayTab = document.getElementById('todayTransactionTab');
+  const weekTab = document.getElementById('weekTransactionTab');
   const monthTab = document.getElementById('monthTransactionTab');
   const todayView = document.getElementById('todayTransactionView');
+  const weekView = document.getElementById('weekTransactionView');
   const monthView = document.getElementById('monthTransactionView');
   
+  // Remove active class from all tabs
+  [todayTab, weekTab, monthTab].forEach(tab => tab?.classList.remove('active'));
+  
+  // Hide all views
+  [todayView, weekView, monthView].forEach(view => view?.classList.add('hidden'));
+  
   if (tab === 'today') {
-    if (todayTab) todayTab.classList.add('active');
-    if (monthTab) monthTab.classList.remove('active');
-    if (todayView) todayView.classList.remove('hidden');
-    if (monthView) monthView.classList.add('hidden');
-  } else {
-    if (monthTab) monthTab.classList.add('active');
-    if (todayTab) todayTab.classList.remove('active');
-    if (monthView) monthView.classList.remove('hidden');
-    if (todayView) todayView.classList.add('hidden');
+    todayTab?.classList.add('active');
+    todayView?.classList.remove('hidden');
+  } else if (tab === 'week') {
+    weekTab?.classList.add('active');
+    weekView?.classList.remove('hidden');
+  } else if (tab === 'month') {
+    monthTab?.classList.add('active');
+    monthView?.classList.remove('hidden');
   }
 }
 
@@ -1413,6 +1582,33 @@ function updateTransactionSectionDisplay() {
       todayDetails.innerHTML = '<p class="no-data">No transactions today</p>';
     } else {
       todayDetails.innerHTML = todaysTransactions.map(t => `
+        <div class="transaction-item">
+          <div class="transaction-info">
+            <span class="transaction-product">${escapeHtml(t.productName)}</span>
+            <span class="transaction-time">${new Date(t.timestamp).toLocaleTimeString()}</span>
+          </div>
+          <div class="transaction-amount">₹${t.price.toLocaleString()}</div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Update week's data
+  const weekRevenue = document.getElementById('weekRevenue');
+  const weekItemCount = document.getElementById('weekItemCount');
+  const weekDetails = document.getElementById('weekTransactionDetails');
+  
+  const weeklyRevenue = getWeekTotal();
+  const weekTransactionsList = getWeekTransactions();
+  
+  if (weekRevenue) weekRevenue.textContent = `₹${weeklyRevenue.toLocaleString()}`;
+  if (weekItemCount) weekItemCount.textContent = weekTransactionsList.length.toString();
+  
+  if (weekDetails) {
+    if (weekTransactionsList.length === 0) {
+      weekDetails.innerHTML = '<p class="no-data">No transactions this week</p>';
+    } else {
+      weekDetails.innerHTML = weekTransactionsList.map(t => `
         <div class="transaction-item">
           <div class="transaction-info">
             <span class="transaction-product">${escapeHtml(t.productName)}</span>
@@ -1670,20 +1866,27 @@ window.restockProduct = function(productId) {
 
 function showTransactionTab(tab) {
   const todayTab = document.getElementById('todayTab');
+  const weekTab = document.getElementById('weekTab');
   const monthTab = document.getElementById('monthTab');
   const todayContent = document.getElementById('todayTransactions');
+  const weekContent = document.getElementById('weekTransactions');
   const monthContent = document.getElementById('monthTransactions');
   
+  // Remove active class from all tabs
+  [todayTab, weekTab, monthTab].forEach(tab => tab?.classList.remove('active'));
+  
+  // Hide all content sections
+  [todayContent, weekContent, monthContent].forEach(content => content?.classList.add('hidden'));
+  
   if (tab === 'today') {
-    todayTab.classList.add('active');
-    monthTab.classList.remove('active');
-    todayContent.classList.remove('hidden');
-    monthContent.classList.add('hidden');
-  } else {
-    monthTab.classList.add('active');
-    todayTab.classList.remove('active');
-    monthContent.classList.remove('hidden');
-    todayContent.classList.add('hidden');
+    todayTab?.classList.add('active');
+    todayContent?.classList.remove('hidden');
+  } else if (tab === 'week') {
+    weekTab?.classList.add('active');
+    weekContent?.classList.remove('hidden');
+  } else if (tab === 'month') {
+    monthTab?.classList.add('active');
+    monthContent?.classList.remove('hidden');
   }
 }
 
