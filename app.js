@@ -802,7 +802,7 @@ function generatePDF() {
   doc.setFontSize(8);
   doc.text('Thank you for shopping with WUROUD!', 113, y, { align: 'center' });
   y += 10;
-  doc.text('E & O E', 113, y, { align: 'center' });
+  doc.text('See you soon!', 113, y, { align: 'center' });
 
   doc.save(`WUROUD-bill-${Date.now()}.pdf`);
 
