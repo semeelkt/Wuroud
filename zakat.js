@@ -51,15 +51,17 @@ function createZakatUI() {
   card.id = 'zakat-card';
   card.className = 'card zakat-card';
   card.innerHTML = `
-    <h3>Zakāth (Zakat-ul-Tijarah)</h3>
-    <div class="z-row"><label>Total Stock Value</label><div id="z-totalStock">₹0</div></div>
-    <div class="z-row"><label>Cash In Hand</label><input id="z-cashInHand" type="number" min="0" step="0.01" value="0" /></div>
-    <div class="z-row"><label>Receivable Debts</label><input id="z-receivables" type="number" min="0" step="0.01" value="0" /></div>
-    <div class="z-row"><label>Short-Term Debts</label><input id="z-shortTermDebts" type="number" min="0" step="0.01" value="0" /></div>
+    <h3>📊 Zakāth (Zakat-ul-Tijarah)</h3>
+    <div class="z-row z-header">
+      <label>Total Stock Value</label>
+      <div id="z-totalStock" class="z-value">₹0</div>
+    </div>
     <hr />
-    <div class="z-row"><label>Zakatable Amount</label><div id="z-zakatable">₹0</div></div>
-    <div class="z-row"><label>Zakāth Due (2.5%)</label><div id="z-zakatDue">₹0</div></div>
-    <div style="margin-top:10px; font-size:12px; color:#666">Auto-updates when stock/products change</div>
+    <div class="z-row z-header">
+      <label>Zakāth Due (2.5%)</label>
+      <div id="z-zakatDue" class="z-value z-large">₹0</div>
+    </div>
+    <div style="margin-top:12px; font-size:12px; color:#666; text-align:center">✓ Auto-calculates from stock (Price × Quantity)</div>
   `;
 
   // Insert into right column if exists, otherwise append to body
@@ -73,10 +75,6 @@ function createZakatUI() {
 
   // Element refs
   const totalStockEl = document.getElementById('z-totalStock');
-  const cashInput = document.getElementById('z-cashInHand');
-  const receivablesInput = document.getElementById('z-receivables');
-  const shortDebtsInput = document.getElementById('z-shortTermDebts');
-  const zakatableEl = document.getElementById('z-zakatable');
   const zakatDueEl = document.getElementById('z-zakatDue');
 
   // Recalculate and update UI
@@ -85,24 +83,13 @@ function createZakatUI() {
     const products = window.products || window._products || [];
     const productStocks = window.productStocks || {};
 
+    // Calculate based on stock value only (no manual inputs)
     const totalStockValue = calculateStockValue(products, productStocks);
-    const cash = Number(cashInput.value) || 0;
-    const receivables = Number(receivablesInput.value) || 0;
-    const shortDebts = Number(shortDebtsInput.value) || 0;
-
-    const zakatableAmount = totalStockValue + cash + receivables - shortDebts;
-    const zakatDue = calculateZakat(zakatableAmount, 0.025);
+    const zakatDue = calculateZakat(totalStockValue, 0.025);
 
     totalStockEl.textContent = formatRupee(totalStockValue);
-    zakatableEl.textContent = formatRupee(zakatableAmount);
     zakatDueEl.textContent = formatRupee(zakatDue);
   }
-
-  // Input listeners
-  [cashInput, receivablesInput, shortDebtsInput].forEach(inp => {
-    inp.addEventListener('input', recalcAndRender);
-    inp.addEventListener('change', recalcAndRender);
-  });
 
   // Periodic poll to reflect product/stock changes in real-time
   let lastSnapshot = { productsCount: 0, stockHash: '' };

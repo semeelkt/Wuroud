@@ -1621,11 +1621,13 @@ main{display:flex;gap:28px;margin-top:18px}
 }
 
 /* Zakāth card styles */
-.zakat-card { padding: 14px; border-left: 4px solid #ff9800; }
+.zakat-card { padding: 16px; border-left: 4px solid #ff9800; background: linear-gradient(135deg, #fffbf0 0%, #fff9e6 100%); }
 .z-row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin:8px 0; }
-.z-row label { font-weight:600; color:#333; }
-.z-row input[type="number"] { width:140px; padding:8px 10px; border-radius:6px; border:1px solid #e6e6e6; }
-.zakat-card hr { margin:12px 0; border:none; border-top:1px solid #eee; }
+.z-row.z-header label { font-weight:700; color:#333; font-size:15px; }
+.z-value { font-weight:700; color:#ff9800; font-size:18px; }
+.z-value.z-large { font-size:24px; color:#e67e22; }
+.zakat-card h3 { margin:0 0 12px 0; color:#333; font-size:16px; }
+.zakat-card hr { margin:12px 0; border:none; border-top:1px solid #ffe0b2; }
 
 
 /* PERFORMANCE CHART STYLES */
