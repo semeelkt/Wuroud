@@ -80,12 +80,16 @@ function createZakatUI() {
   // Recalculate and update UI
   function recalcAndRender() {
     // Read products from global window (app.js uses `products` and `productStocks` globals)
-    const products = window.products || window._products || [];
+    const products = window.products || [];
     const productStocks = window.productStocks || {};
+
+    console.log('📊 Zakat recalc - Products:', products.length, 'Stock keys:', Object.keys(productStocks).length);
 
     // Calculate based on stock value only (no manual inputs)
     const totalStockValue = calculateStockValue(products, productStocks);
     const zakatDue = calculateZakat(totalStockValue, 0.025);
+
+    console.log('💰 Total Stock Value:', totalStockValue, 'Zakat Due:', zakatDue);
 
     totalStockEl.textContent = formatRupee(totalStockValue);
     zakatDueEl.textContent = formatRupee(zakatDue);
@@ -93,7 +97,7 @@ function createZakatUI() {
 
   // Periodic poll to reflect product/stock changes in real-time
   let lastSnapshot = { productsCount: 0, stockHash: '' };
-  setInterval(() => {
+  const pollInterval = setInterval(() => {
     try {
       const products = window.products || [];
       const productStocks = window.productStocks || {};
@@ -106,12 +110,16 @@ function createZakatUI() {
         recalcAndRender();
       }
     } catch (e) {
-      // ignore
+      console.error('Zakat poll error:', e);
     }
-  }, 700);
+  }, 500);
 
   // Initial render
-  setTimeout(recalcAndRender, 200);
+  recalcAndRender();
+  
+  // Also re-render on product changes if app.js dispatches events
+  document.addEventListener('productsUpdated', recalcAndRender);
+  document.addEventListener('stockUpdated', recalcAndRender);
 }
 
 // Initialize on DOM ready

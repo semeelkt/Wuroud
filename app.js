@@ -382,6 +382,8 @@ function loadProducts() {
     populateCategoryFilter();
     populateStockFilters();
     updateStockDisplay();
+    // Trigger zakat recalc
+    document.dispatchEvent(new CustomEvent('productsUpdated'));
   }, error => {
     console.error("❌ Firebase connection error:", error);
   });
@@ -1742,6 +1744,8 @@ async function updateProductStock(productId, newStock) {
   updateStockDisplay();
   // Also re-render product cards to show updated stock
   renderProducts();
+  // Trigger zakat recalc
+  document.dispatchEvent(new CustomEvent('stockUpdated'));
 }
 
 function decreaseStock(productId, quantity = 1) {
