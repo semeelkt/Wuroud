@@ -57,6 +57,35 @@ if (isPacketCheckbox && packetSizeWrap) {
     if (!this.checked && packetSizeInput) packetSizeInput.value = "";
   });
 }
+
+// Calculate total stock value and Zakat (2.5%) and display in billing panel
+function calculateZakat() {
+  const stockValueEl = document.getElementById('stockValue');
+  const zakatEl = document.getElementById('zakatAmount');
+  if (!stockValueEl || !zakatEl) return;
+
+  let total = 0;
+  products.forEach(p => {
+    // Skip packet entries to avoid double-counting; use base products only
+    if (p.isPacket) return;
+    const stock = getProductStock(p.id) || 0;
+    const price = Number(p.price) || 0;
+    total += price * stock;
+  });
+
+  // Format values
+  const totalFormatted = total.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2});
+  const zakat = total * 0.025;
+  const zakatFormatted = zakat.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+  stockValueEl.textContent = `₹${totalFormatted}`;
+  zakatEl.textContent = `₹${zakatFormatted}`;
+}
+
+// Recalculate on product/stock updates and on load
+document.addEventListener('productsUpdated', calculateZakat);
+document.addEventListener('stockUpdated', calculateZakat);
+document.addEventListener('DOMContentLoaded', () => calculateZakat());
 const loginForm = document.getElementById("loginForm");
 const authContainer = document.getElementById("authContainer");
 const logoutBtn = document.getElementById("logoutBtn");
