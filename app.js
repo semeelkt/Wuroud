@@ -31,6 +31,7 @@ const transactionsCol = collection(db, "transactions");
 const productGrid = document.getElementById("productGrid");
 const addBtn = document.getElementById("addProductBtn");
 const pName = document.getElementById("pName");
+const pWholesalePrice = document.getElementById("pWholesalePrice");
 const pPrice = document.getElementById("pPrice");
 const pCategoryInput = document.getElementById("pCategoryInput");
 const pImage = document.getElementById("pImage");
@@ -335,6 +336,7 @@ function showAuthUI(isLoggedOut) {
 // Add product to Firestore under logged-in user's collection
 addBtn.addEventListener("click", async () => {
   const name = pName.value.trim();
+  const wholesalePrice = pWholesalePrice.value.trim() ? Number(pWholesalePrice.value) : null;
   const price = Number(pPrice.value);
   const stock = Number(document.getElementById("pStock").value) || 0;
   const category = pCategoryInput.value;
@@ -344,13 +346,14 @@ addBtn.addEventListener("click", async () => {
   const isPacket = isPacketCheckbox && isPacketCheckbox.checked;
   const packetSize = isPacket && packetSizeInput ? Number(packetSizeInput.value) : null;
 
-  if (!name || !price) return alert("Please enter product name and price.");
+  if (!name || !price) return alert("Please enter product name and retail price.");
   if (stock < 0) return alert("Stock quantity cannot be negative.");
   if (isPacket && (!packetSize || packetSize < 1)) return alert("Please enter a valid packet size.");
 
   if (user) {
     await addDoc(productsCol, {
       name,
+      wholesalePrice: wholesalePrice,
       price,
       category,
       image: image || "",
@@ -363,6 +366,7 @@ addBtn.addEventListener("click", async () => {
     });
 
   pName.value = "";
+  pWholesalePrice.value = "";
   pPrice.value = "";
   document.getElementById("pStock").value = "";
   pImage.value = "";
@@ -507,7 +511,9 @@ function attachProductCardListeners() {
       // Prompt for new values
       const newName = prompt("Edit product name:", product.name);
       if (newName === null) return;
-      const newPrice = prompt("Edit product price:", product.price);
+      const newWholesalePrice = prompt("Edit wholesale price (leave blank for none):", product.wholesalePrice || "");
+      if (newWholesalePrice === null) return;
+      const newPrice = prompt("Edit retail price:", product.price);
       if (newPrice === null || isNaN(Number(newPrice))) return alert("Invalid price");
       const newCategory = prompt("Edit product category:", product.category);
       if (newCategory === null) return;
@@ -522,6 +528,7 @@ function attachProductCardListeners() {
         const productRef = doc(db, "products", prodId);
         await updateDoc(productRef, {
           name: newName,
+          wholesalePrice: newWholesalePrice ? Number(newWholesalePrice) : null,
           price: Number(newPrice),
           category: newCategory,
           keywords: newKeywords,
@@ -541,10 +548,10 @@ function productCardHtml(p) {
   const stock = getProductStock(p.id);
   const isOutOfStock = stock <= 0;
   const isLowStock = stock > 0 && stock <= 5;
-  
+
   let stockClass = 'stock-normal';
   let stockText = `Stock: ${stock}`;
-  
+
   if (isOutOfStock) {
     stockClass = 'stock-out';
     stockText = 'Out of Stock';
@@ -552,7 +559,9 @@ function productCardHtml(p) {
     stockClass = 'stock-low';
     stockText = `Low Stock: ${stock}`;
   }
-  
+
+  const wholesalePriceHtml = p.wholesalePrice ? `<div class="prod-wholesale-price">Cost: ₹${p.wholesalePrice}</div>` : '';
+
   return `
     <div class="product-card">
       <div class="prod-img-wrap">
@@ -561,6 +570,7 @@ function productCardHtml(p) {
       <div class="prod-info">
         <div class="prod-title">${escapeHtml(p.name)}</div>
         <div class="prod-meta">₹${p.price} | ${escapeHtml(p.category)}</div>
+        ${wholesalePriceHtml}
         <div class="prod-stock ${stockClass}">${stockText}</div>
         ${p.isPacket && p.packetSize ? `<div class="prod-packet-info">Packet of ${p.packetSize}</div>` : ''}
         <button class="btn add-to-bill" data-id="${p.id}" ${isOutOfStock ? 'disabled' : ''}>
