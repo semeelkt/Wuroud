@@ -2236,6 +2236,7 @@ async function loadPurchases() {
         purchases.push({ id: doc.id, ...doc.data() });
       });
       renderPurchasesTable();
+      renderDeletedPurchasesTable();
     });
   } catch (error) {
     console.error('Error loading purchases:', error);
@@ -2246,12 +2247,14 @@ function renderPurchasesTable() {
   const tbody = document.getElementById('purchasesTable');
   if (!tbody) return;
 
-  if (purchases.length === 0) {
+  const activePurchases = purchases.filter(p => !p.isDeleted);
+
+  if (activePurchases.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" class="no-data">No purchases yet</td></tr>';
     return;
   }
 
-  tbody.innerHTML = purchases.map(p => `
+  tbody.innerHTML = activePurchases.map(p => `
     <tr>
       <td>${formatDate(p.date)}</td>
       <td>${escapeHtml(p.supplier)}</td>
@@ -2265,15 +2268,32 @@ function renderPurchasesTable() {
 }
 
 async function deletePurchase(id) {
-  if (confirm('Delete this purchase?')) {
+  if (confirm('This will mark as deleted. You can restore it within 30 days.')) {
     try {
-      await deleteDoc(doc(db, "purchases", id));
+      await updateDoc(doc(db, "purchases", id), {
+        isDeleted: true,
+        deletedAt: Date.now()
+      });
       loadPurchases();
       updateAccountingDashboard();
-      showNotification('Purchase deleted', 'info', 1500);
+      showNotification('Purchase marked as deleted (30-day retention)', 'info', 2000);
     } catch (error) {
       console.error('Error deleting purchase:', error);
     }
+  }
+}
+
+async function restorePurchase(id) {
+  try {
+    await updateDoc(doc(db, "purchases", id), {
+      isDeleted: false,
+      deletedAt: null
+    });
+    loadPurchases();
+    updateAccountingDashboard();
+    showNotification('Purchase restored', 'success', 1500);
+  } catch (error) {
+    console.error('Error restoring purchase:', error);
   }
 }
 
@@ -2321,6 +2341,7 @@ async function loadSales() {
         sales.push({ id: doc.id, ...doc.data() });
       });
       renderSalesTable();
+      renderDeletedSalesTable();
     });
   } catch (error) {
     console.error('Error loading sales:', error);
@@ -2331,12 +2352,14 @@ function renderSalesTable() {
   const tbody = document.getElementById('salesTable');
   if (!tbody) return;
 
-  if (sales.length === 0) {
+  const activeSales = sales.filter(s => !s.isDeleted);
+
+  if (activeSales.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6" class="no-data">No sales yet</td></tr>';
     return;
   }
 
-  tbody.innerHTML = sales.map(s => `
+  tbody.innerHTML = activeSales.map(s => `
     <tr>
       <td>${formatDate(s.date)}</td>
       <td>${escapeHtml(s.product)}</td>
@@ -2349,15 +2372,32 @@ function renderSalesTable() {
 }
 
 async function deleteSale(id) {
-  if (confirm('Delete this sale?')) {
+  if (confirm('This will mark as deleted. You can restore it within 30 days.')) {
     try {
-      await deleteDoc(doc(db, "sales", id));
+      await updateDoc(doc(db, "sales", id), {
+        isDeleted: true,
+        deletedAt: Date.now()
+      });
       loadSales();
       updateAccountingDashboard();
-      showNotification('Sale deleted', 'info', 1500);
+      showNotification('Sale marked as deleted (30-day retention)', 'info', 2000);
     } catch (error) {
       console.error('Error deleting sale:', error);
     }
+  }
+}
+
+async function restoreSale(id) {
+  try {
+    await updateDoc(doc(db, "sales", id), {
+      isDeleted: false,
+      deletedAt: null
+    });
+    loadSales();
+    updateAccountingDashboard();
+    showNotification('Sale restored', 'success', 1500);
+  } catch (error) {
+    console.error('Error restoring sale:', error);
   }
 }
 
@@ -2404,6 +2444,7 @@ async function loadExpenses() {
         expenses.push({ id: doc.id, ...doc.data() });
       });
       renderExpensesTable();
+      renderDeletedExpensesTable();
     });
   } catch (error) {
     console.error('Error loading expenses:', error);
@@ -2414,12 +2455,14 @@ function renderExpensesTable() {
   const tbody = document.getElementById('expensesTable');
   if (!tbody) return;
 
-  if (expenses.length === 0) {
+  const activeExpenses = expenses.filter(e => !e.isDeleted);
+
+  if (activeExpenses.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" class="no-data">No expenses yet</td></tr>';
     return;
   }
 
-  tbody.innerHTML = expenses.map(e => `
+  tbody.innerHTML = activeExpenses.map(e => `
     <tr>
       <td>${formatDate(e.date)}</td>
       <td>${escapeHtml(e.type)}</td>
@@ -2431,15 +2474,32 @@ function renderExpensesTable() {
 }
 
 async function deleteExpense(id) {
-  if (confirm('Delete this expense?')) {
+  if (confirm('This will mark as deleted. You can restore it within 30 days.')) {
     try {
-      await deleteDoc(doc(db, "expenses", id));
+      await updateDoc(doc(db, "expenses", id), {
+        isDeleted: true,
+        deletedAt: Date.now()
+      });
       loadExpenses();
       updateAccountingDashboard();
-      showNotification('Expense deleted', 'info', 1500);
+      showNotification('Expense marked as deleted (30-day retention)', 'info', 2000);
     } catch (error) {
       console.error('Error deleting expense:', error);
     }
+  }
+}
+
+async function restoreExpense(id) {
+  try {
+    await updateDoc(doc(db, "expenses", id), {
+      isDeleted: false,
+      deletedAt: null
+    });
+    loadExpenses();
+    updateAccountingDashboard();
+    showNotification('Expense restored', 'success', 1500);
+  } catch (error) {
+    console.error('Error restoring expense:', error);
   }
 }
 
@@ -2457,15 +2517,15 @@ function updateAccountingDashboard() {
 }
 
 function calculateTotalSales() {
-  return sales.reduce((sum, s) => sum + (Number(s.total) || 0), 0);
+  return sales.filter(s => !s.isDeleted).reduce((sum, s) => sum + (Number(s.total) || 0), 0);
 }
 
 function calculateTotalPurchases() {
-  return purchases.reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+  return purchases.filter(p => !p.isDeleted).reduce((sum, p) => sum + (Number(p.total) || 0), 0);
 }
 
 function calculateTotalExpenses() {
-  return expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  return expenses.filter(e => !e.isDeleted).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 }
 
 // ===== UTILITIES =====
@@ -2492,3 +2552,87 @@ function showNotification(message, type = 'info', duration = 3000) {
 
 // Initialize when authenticated
 document.addEventListener('accountingReady', initializeAccounting);
+
+// ===== TRASH/DELETED ITEMS =====
+function renderDeletedPurchasesTable() {
+  const tbody = document.getElementById('deletedPurchasesTable');
+  if (!tbody) return;
+
+  const deletedPurchases = purchases.filter(p => p.isDeleted && isWithin30Days(p.deletedAt));
+
+  if (deletedPurchases.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="no-data">No deleted purchases</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = deletedPurchases.map(p => `
+    <tr>
+      <td>${formatDate(p.date)}</td>
+      <td>${escapeHtml(p.supplier)}</td>
+      <td>${escapeHtml(p.product)}</td>
+      <td>${p.qty}</td>
+      <td class="table-amount">₹${Number(p.total).toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+      <td>${getDaysAgoText(p.deletedAt)}</td>
+      <td><button class="btn-restore" onclick="restorePurchase('${p.id}')">Restore</button></td>
+    </tr>
+  `).join('');
+}
+
+function renderDeletedSalesTable() {
+  const tbody = document.getElementById('deletedSalesTable');
+  if (!tbody) return;
+
+  const deletedSales = sales.filter(s => s.isDeleted && isWithin30Days(s.deletedAt));
+
+  if (deletedSales.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="no-data">No deleted sales</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = deletedSales.map(s => `
+    <tr>
+      <td>${formatDate(s.date)}</td>
+      <td>${escapeHtml(s.product)}</td>
+      <td>${s.qty}</td>
+      <td class="table-amount">₹${Number(s.total).toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+      <td>${getDaysAgoText(s.deletedAt)}</td>
+      <td><button class="btn-restore" onclick="restoreSale('${s.id}')">Restore</button></td>
+    </tr>
+  `).join('');
+}
+
+function renderDeletedExpensesTable() {
+  const tbody = document.getElementById('deletedExpensesTable');
+  if (!tbody) return;
+
+  const deletedExpenses = expenses.filter(e => e.isDeleted && isWithin30Days(e.deletedAt));
+
+  if (deletedExpenses.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="no-data">No deleted expenses</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = deletedExpenses.map(e => `
+    <tr>
+      <td>${formatDate(e.date)}</td>
+      <td>${escapeHtml(e.type)}</td>
+      <td class="table-amount">₹${Number(e.amount).toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+      <td>${getDaysAgoText(e.deletedAt)}</td>
+      <td><button class="btn-restore" onclick="restoreExpense('${e.id}')">Restore</button></td>
+    </tr>
+  `).join('');
+}
+
+function isWithin30Days(deletedAt) {
+  if (!deletedAt) return false;
+  const daysSince = (Date.now() - deletedAt) / (1000 * 60 * 60 * 24);
+  return daysSince <= 30;
+}
+
+function getDaysAgoText(deletedAt) {
+  if (!deletedAt) return '-';
+  const daysSince = Math.floor((Date.now() - deletedAt) / (1000 * 60 * 60 * 24));
+  if (daysSince === 0) return 'Today';
+  if (daysSince === 1) return '1 day ago';
+  return `${daysSince} days ago`;
+}

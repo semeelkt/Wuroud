@@ -2284,3 +2284,19 @@ main{display:flex;gap:28px;margin-top:18px}
     font-size: 13px;
   }
 }
+
+/* Restore Button */
+.btn-restore {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.3s;
+}
+
+.btn-restore:hover {
+  background: #218838;
+}
