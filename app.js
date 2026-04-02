@@ -1342,10 +1342,12 @@ onAuthStateChanged(auth, (user) => {
     initializeStockData(); // Initialize stock data
     loadProducts();
     listenToTransactions();
+    initializeAccounting(); // Initialize accounting system
     // Force re-render after stock initialization
     setTimeout(() => {
       renderProducts();
       updateStockDisplay();
+      updateAccountingDashboard();
     }, 100);
   } else {
     // User is signed out
@@ -1476,10 +1478,12 @@ document.addEventListener('DOMContentLoaded', function() {
   const billingTab = document.getElementById('billingTab');
   const transactionsTab = document.getElementById('transactionsTab');
   const stockTab = document.getElementById('stockTab');
-  
+  const accountingTab = document.getElementById('accountingTab');
+
   if (billingTab) billingTab.addEventListener('click', () => showMainSection('billing'));
   if (transactionsTab) transactionsTab.addEventListener('click', () => showMainSection('transactions'));
   if (stockTab) stockTab.addEventListener('click', () => showMainSection('stock'));
+  if (accountingTab) accountingTab.addEventListener('click', () => showMainSection('accounting'));
   
   // Transaction sub-tabs
   const todayTransactionTab = document.getElementById('todayTransactionTab');
@@ -2108,3 +2112,383 @@ function updatePerformanceStats() {
     }
   }
 }
+// ============================================
+// ACCOUNTING SYSTEM
+// ============================================
+
+// Firestore collections
+const purchasesCol = collection(db, "purchases");
+const salesCol = collection(db, "sales");
+const expensesCol = collection(db, "expenses");
+
+// Accounting state
+let purchases = [];
+let sales = [];
+let expenses = [];
+
+// Initialize accounting system
+function initializeAccounting() {
+  loadPurchases();
+  loadSales();
+  loadExpenses();
+  setupAccountingEventListeners();
+}
+
+// Setup event listeners
+function setupAccountingEventListeners() {
+  // Accounting tabs
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const tabName = this.getAttribute('data-tab');
+      showAccountingTab(tabName);
+    });
+  });
+
+  // Toggle forms
+  document.getElementById('togglePurchaseForm')?.addEventListener('click', function() {
+    toggleFormVisibility('purchaseFormWrap');
+  });
+  document.getElementById('toggleSaleForm')?.addEventListener('click', function() {
+    toggleFormVisibility('saleFormWrap');
+  });
+  document.getElementById('toggleExpenseForm')?.addEventListener('click', function() {
+    toggleFormVisibility('expenseFormWrap');
+  });
+
+  // Form submissions
+  document.getElementById('purchaseForm')?.addEventListener('submit', addPurchase);
+  document.getElementById('saleForm')?.addEventListener('submit', addSale);
+  document.getElementById('expenseForm')?.addEventListener('submit', addExpense);
+}
+
+function toggleFormVisibility(elementId) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.classList.toggle('hidden');
+  }
+}
+
+function showAccountingTab(tabName) {
+  // Hide all sections
+  document.querySelectorAll('.accounting-section').forEach(section => {
+    section.classList.remove('active');
+  });
+
+  // Remove active from all tabs
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
+  // Show selected section
+  const section = document.getElementById(tabName);
+  if (section) {
+    section.classList.add('active');
+  }
+
+  // Mark tab as active
+  event.target.classList.add('active');
+}
+
+// ===== PURCHASES =====
+async function addPurchase(e) {
+  e.preventDefault();
+
+  const date = document.getElementById('purchaseDate').value;
+  const supplier = document.getElementById('purchaseSupplier').value;
+  const product = document.getElementById('purchaseProduct').value;
+  const qty = Number(document.getElementById('purchaseQty').value);
+  const costPrice = Number(document.getElementById('purchaseCostPrice').value);
+
+  if (!date || !supplier || !product || !qty || !costPrice) {
+    alert('Please fill all fields');
+    return;
+  }
+
+  try {
+    await addDoc(purchasesCol, {
+      date,
+      supplier,
+      product,
+      qty,
+      costPrice,
+      total: qty * costPrice,
+      createdAt: Date.now()
+    });
+
+    // Reset form
+    document.getElementById('purchaseForm').reset();
+    toggleFormVisibility('purchaseFormWrap');
+    loadPurchases();
+    updateAccountingDashboard();
+    showNotification('Purchase added successfully', 'success', 2000);
+  } catch (error) {
+    console.error('Error adding purchase:', error);
+    showNotification('Error adding purchase', 'error', 2000);
+  }
+}
+
+async function loadPurchases() {
+  try {
+    const q = query(purchasesCol, orderBy("createdAt", "desc"));
+    onSnapshot(q, (snapshot) => {
+      purchases = [];
+      snapshot.forEach(doc => {
+        purchases.push({ id: doc.id, ...doc.data() });
+      });
+      renderPurchasesTable();
+    });
+  } catch (error) {
+    console.error('Error loading purchases:', error);
+  }
+}
+
+function renderPurchasesTable() {
+  const tbody = document.getElementById('purchasesTable');
+  if (!tbody) return;
+
+  if (purchases.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="no-data">No purchases yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = purchases.map(p => `
+    <tr>
+      <td>${formatDate(p.date)}</td>
+      <td>${escapeHtml(p.supplier)}</td>
+      <td>${escapeHtml(p.product)}</td>
+      <td>${p.qty}</td>
+      <td>₹${Number(p.costPrice).toFixed(2)}</td>
+      <td class="table-amount">₹${Number(p.total).toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+      <td><button class="btn-delete" onclick="deletePurchase('${p.id}')">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+async function deletePurchase(id) {
+  if (confirm('Delete this purchase?')) {
+    try {
+      await deleteDoc(doc(db, "purchases", id));
+      loadPurchases();
+      updateAccountingDashboard();
+      showNotification('Purchase deleted', 'info', 1500);
+    } catch (error) {
+      console.error('Error deleting purchase:', error);
+    }
+  }
+}
+
+// ===== SALES =====
+async function addSale(e) {
+  e.preventDefault();
+
+  const date = document.getElementById('saleDate').value;
+  const product = document.getElementById('saleProduct').value;
+  const qty = Number(document.getElementById('saleQty').value);
+  const price = Number(document.getElementById('salePrice').value);
+
+  if (!date || !product || !qty || !price) {
+    alert('Please fill all fields');
+    return;
+  }
+
+  try {
+    await addDoc(salesCol, {
+      date,
+      product,
+      qty,
+      price,
+      total: qty * price,
+      createdAt: Date.now()
+    });
+
+    document.getElementById('saleForm').reset();
+    toggleFormVisibility('saleFormWrap');
+    loadSales();
+    updateAccountingDashboard();
+    showNotification('Sale added successfully', 'success', 2000);
+  } catch (error) {
+    console.error('Error adding sale:', error);
+    showNotification('Error adding sale', 'error', 2000);
+  }
+}
+
+async function loadSales() {
+  try {
+    const q = query(salesCol, orderBy("createdAt", "desc"));
+    onSnapshot(q, (snapshot) => {
+      sales = [];
+      snapshot.forEach(doc => {
+        sales.push({ id: doc.id, ...doc.data() });
+      });
+      renderSalesTable();
+    });
+  } catch (error) {
+    console.error('Error loading sales:', error);
+  }
+}
+
+function renderSalesTable() {
+  const tbody = document.getElementById('salesTable');
+  if (!tbody) return;
+
+  if (sales.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="no-data">No sales yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = sales.map(s => `
+    <tr>
+      <td>${formatDate(s.date)}</td>
+      <td>${escapeHtml(s.product)}</td>
+      <td>${s.qty}</td>
+      <td>₹${Number(s.price).toFixed(2)}</td>
+      <td class="table-amount">₹${Number(s.total).toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+      <td><button class="btn-delete" onclick="deleteSale('${s.id}')">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+async function deleteSale(id) {
+  if (confirm('Delete this sale?')) {
+    try {
+      await deleteDoc(doc(db, "sales", id));
+      loadSales();
+      updateAccountingDashboard();
+      showNotification('Sale deleted', 'info', 1500);
+    } catch (error) {
+      console.error('Error deleting sale:', error);
+    }
+  }
+}
+
+// ===== EXPENSES =====
+async function addExpense(e) {
+  e.preventDefault();
+
+  const date = document.getElementById('expenseDate').value;
+  const type = document.getElementById('expenseType').value;
+  const amount = Number(document.getElementById('expenseAmount').value);
+  const notes = document.getElementById('expenseNotes').value;
+
+  if (!date || !type || !amount) {
+    alert('Please fill required fields');
+    return;
+  }
+
+  try {
+    await addDoc(expensesCol, {
+      date,
+      type,
+      amount,
+      notes,
+      createdAt: Date.now()
+    });
+
+    document.getElementById('expenseForm').reset();
+    toggleFormVisibility('expenseFormWrap');
+    loadExpenses();
+    updateAccountingDashboard();
+    showNotification('Expense added successfully', 'success', 2000);
+  } catch (error) {
+    console.error('Error adding expense:', error);
+    showNotification('Error adding expense', 'error', 2000);
+  }
+}
+
+async function loadExpenses() {
+  try {
+    const q = query(expensesCol, orderBy("createdAt", "desc"));
+    onSnapshot(q, (snapshot) => {
+      expenses = [];
+      snapshot.forEach(doc => {
+        expenses.push({ id: doc.id, ...doc.data() });
+      });
+      renderExpensesTable();
+    });
+  } catch (error) {
+    console.error('Error loading expenses:', error);
+  }
+}
+
+function renderExpensesTable() {
+  const tbody = document.getElementById('expensesTable');
+  if (!tbody) return;
+
+  if (expenses.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="no-data">No expenses yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = expenses.map(e => `
+    <tr>
+      <td>${formatDate(e.date)}</td>
+      <td>${escapeHtml(e.type)}</td>
+      <td class="table-amount">₹${Number(e.amount).toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+      <td>${escapeHtml(e.notes || '-')}</td>
+      <td><button class="btn-delete" onclick="deleteExpense('${e.id}')">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+async function deleteExpense(id) {
+  if (confirm('Delete this expense?')) {
+    try {
+      await deleteDoc(doc(db, "expenses", id));
+      loadExpenses();
+      updateAccountingDashboard();
+      showNotification('Expense deleted', 'info', 1500);
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+    }
+  }
+}
+
+// ===== DASHBOARD =====
+function updateAccountingDashboard() {
+  const totalSales = calculateTotalSales();
+  const totalPurchases = calculateTotalPurchases();
+  const totalExpenses = calculateTotalExpenses();
+  const profit = totalSales - totalPurchases - totalExpenses;
+
+  document.getElementById('totalSales').textContent = `₹${totalSales.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
+  document.getElementById('totalPurchases').textContent = `₹${totalPurchases.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
+  document.getElementById('totalExpenses').textContent = `₹${totalExpenses.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
+  document.getElementById('totalProfit').textContent = `₹${profit.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
+}
+
+function calculateTotalSales() {
+  return sales.reduce((sum, s) => sum + (Number(s.total) || 0), 0);
+}
+
+function calculateTotalPurchases() {
+  return purchases.reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+}
+
+function calculateTotalExpenses() {
+  return expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+}
+
+// ===== UTILITIES =====
+function formatDate(dateStr) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-IN');
+}
+
+// Show notification
+function showNotification(message, type = 'info', duration = 3000) {
+  const container = document.getElementById('notification-container');
+  if (!container) return;
+
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.textContent = message;
+
+  container.appendChild(notification);
+
+  setTimeout(() => {
+    notification.remove();
+  }, duration);
+}
+
+// Initialize when authenticated
+document.addEventListener('accountingReady', initializeAccounting);
